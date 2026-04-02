@@ -341,21 +341,48 @@
   }
 
   async function handleAuth() {
-    const email = document.getElementById('auth-email').value;
-    const password = document.getElementById('auth-password').value;
-    const username = document.getElementById('auth-username').value;
-    const role = document.getElementById('auth-role').value;
+  const email = document.getElementById('auth-email').value;
+  const password = document.getElementById('auth-password').value;
+  const username = document.getElementById('auth-username').value;
+  const role = document.getElementById('auth-role').value;
 
-    if (isSignUpMode) {
-      const { data, error } = await _supabase.auth.signUp({ email, password });
-      if (error) return alert(error.message);
-      await _supabase.from('profiles').insert([{ id: data.user.id, username, role }]);
-      alert("Account created!");
+  if (!email || !password) return alert("Please enter both email and password.");
+
+  if (isSignUpMode) {
+    if (!username) return alert("Please choose a username.");
+    
+    // Attempt Sign Up
+    const { data, error } = await _supabase.auth.signUp({ email, password });
+    
+    if (error) {
+      // This will now tell you "Password should be at least 6 characters"
+      return alert("Sign Up Error: " + error.message); 
+    }
+    
+    // If Auth worked, create the profile
+    if (data.user) {
+       const { error: profError } = await _supabase
+         .from('profiles')
+         .insert([{ id: data.user.id, username: username, role: role }]);
+       
+       if (profError) {
+         console.error(profError);
+         alert("Auth worked, but Profile failed: " + profError.message);
+       } else {
+         alert("Account created successfully! Logging you in...");
+         closeAuth();
+       }
+    }
+  } else {
+    // Attempt Login
+    const { error } = await _supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      alert("Login Error: " + error.message);
     } else {
-      const { error } = await _supabase.auth.signInWithPassword({ email, password });
-      if (error) alert("Login Failed: " + error.message);
+      closeAuth();
     }
   }
+}
 
   async function handleLogout() {
     await _supabase.auth.signOut();
