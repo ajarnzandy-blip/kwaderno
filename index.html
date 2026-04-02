@@ -279,16 +279,17 @@
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+  // 1. INITIALIZE
   const _supabase = supabase.createClient('https://greripiiyckkfowmgvoi.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyZXJpcGlpeWNra2Zvd21ndm9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzUxOTksImV4cCI6MjA5MDY1MTE5OX0.PWEnmh2kZ7D_QQTjaJh_wHhm_n1fX79m0p4XqA325ho');
+  let isSignUpMode = true;
 
-  let isSignUpMode = true; // Added missing variable
-
-  // --- 1. THE BRAIN (AUTH LISTENER) ---
+  // 2. THE BRAIN (AUTH LISTENER)
   _supabase.auth.onAuthStateChange(async (event, session) => {
     const heroStatus = document.getElementById('hero-status');
     
     if (session) {
-      const { data: profile } = await _supabase
+      console.log("Session detected:", session.user.email);
+      const { data: profile, error } = await _supabase
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
@@ -296,10 +297,12 @@
 
       if (profile) {
         document.getElementById('display-username').textContent = profile.username;
-        if(heroStatus) heroStatus.innerHTML = `<strong>Welcome back, ${profile.username}!</strong> You are logged in. Start writing your next essay now!`;
+        if(heroStatus) heroStatus.innerHTML = `<strong>Welcome back, ${profile.username}!</strong> You are logged in. Start writing now!`;
         
         updateNavigation(true, profile.role);
         checkUserEssays(session.user.id);
+        showPage('dashboard'); // Automatically go to dashboard on login
+        closeAuth();
       }
     } else {
       if(heroStatus) heroStatus.innerText = "Kwaderno is a notebook-style writing platform where students compose essays...";
@@ -307,58 +310,34 @@
     }
   });
 
-  // --- 2. DYNAMIC NAVIGATION ---
+  // 3. DYNAMIC NAVIGATION
   function updateNavigation(isLoggedIn, role) {
     const nav = document.getElementById('main-nav');
-    let buttons = `<button id="nav-home" onclick="showPage('home')">Home</button>`;
+    let buttons = `<button onclick="showPage('home')">Home</button>`;
     
     if (isLoggedIn) {
-      buttons += `<button id="nav-dashboard" onclick="showPage('dashboard')">My Essays</button>`;
-      if (role === 'student' || role === null) {
-        buttons += `<button id="nav-write" onclick="showPage('write')">Write</button>`;
-      } else if (role === 'reviewer') {
-        buttons += `<button id="nav-review" onclick="showPage('review')">Review Desk</button>`;
-      }
-      buttons += `<button id="nav-library" onclick="showPage('library')">Library</button>`;
+      buttons += `<button onclick="showPage('dashboard')">My Essays</button>`;
+      if (role === 'student') buttons += `<button onclick="showPage('write')">Write</button>`;
+      else buttons += `<button onclick="showPage('review')">Review Desk</button>`;
+      buttons += `<button onclick="showPage('library')">Library</button>`;
       buttons += `<button onclick="handleLogout()" style="color: var(--squash);">Logout</button>`;
     } else {
-      buttons += `<button id="nav-library" onclick="showPage('library')">Library</button>`;
-      buttons += `<button id="nav-tips" onclick="showPage('tips')">Writing Desk</button>`;
+      buttons += `<button onclick="showPage('library')">Library</button>`;
+      buttons += `<button onclick="showPage('tips')">Writing Desk</button>`;
       buttons += `<button onclick="openAuth()" style="background:var(--squash); color:var(--deep-green); font-weight:bold; margin-left:10px;">Login</button>`;
     }
     nav.innerHTML = buttons;
   }
 
-  // --- 3. CHECK FOR ESSAYS ---
-  async function checkUserEssays(userId) {
-    const { data: essays } = await _supabase.from('essays').select('id').eq('student_id', userId);
-    const emptyBox = document.getElementById('empty-dashboard');
-    const listBox = document.getElementById('essay-list-container');
-
-    if (essays && essays.length > 0) {
-      emptyBox.style.display = 'none';
-      listBox.style.display = 'block';
-    } else {
-      emptyBox.style.display = 'block';
-      listBox.style.display = 'none';
-    }
-  }
-
-  // --- 4. AUTH LOGIC ---
+  // 4. AUTH FUNCTIONS
   function openAuth() { document.getElementById('auth-modal').style.display = 'grid'; }
   function closeAuth() { document.getElementById('auth-modal').style.display = 'none'; }
-
+  
   function toggleAuthMode() {
     isSignUpMode = !isSignUpMode;
-    const title = document.getElementById('auth-title');
-    const toggleLink = document.getElementById('auth-toggle');
-    const signupFields = document.getElementById('signup-only');
-    const btn = document.getElementById('auth-submit-btn');
-
-    title.innerText = isSignUpMode ? "Join Kwaderno" : "Welcome Back";
-    toggleLink.innerText = isSignUpMode ? "Already have an account? Log in" : "Don't have an account? Sign up";
-    signupFields.style.display = isSignUpMode ? "block" : "none";
-    btn.innerText = isSignUpMode ? "Create Account" : "Log In";
+    document.getElementById('auth-title').innerText = isSignUpMode ? "Join Kwaderno" : "Welcome Back";
+    document.getElementById('signup-only').style.display = isSignUpMode ? "block" : "none";
+    document.getElementById('auth-submit-btn').innerText = isSignUpMode ? "Create Account" : "Log In";
   }
 
   async function handleAuth() {
@@ -367,24 +346,37 @@
     const username = document.getElementById('auth-username').value;
     const role = document.getElementById('auth-role').value;
 
-    if (!email || !password) return alert("Fill in email and password");
-
     if (isSignUpMode) {
       const { data, error } = await _supabase.auth.signUp({ email, password });
       if (error) return alert(error.message);
       await _supabase.from('profiles').insert([{ id: data.user.id, username, role }]);
       alert("Account created!");
-      closeAuth();
     } else {
       const { error } = await _supabase.auth.signInWithPassword({ email, password });
-      if (error) alert(error.message);
-      else closeAuth();
+      if (error) alert("Login Failed: " + error.message);
     }
   }
 
   async function handleLogout() {
     await _supabase.auth.signOut();
     location.reload();
+  }
+
+  // 5. ESSAY CHECKER
+  async function checkUserEssays(userId) {
+    const { data } = await _supabase.from('essays').select('id').eq('student_id', userId);
+    document.getElementById('empty-dashboard').style.display = (data && data.length > 0) ? 'none' : 'block';
+    document.getElementById('essay-list-container').style.display = (data && data.length > 0) ? 'block' : 'none';
+  }
+
+  // 6. PAGE ENGINE
+  function showPage(pageId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(pageId).classList.add('active');
+    if(pageId === 'write') {
+        document.getElementById('display-date').textContent = new Date().toLocaleDateString();
+    }
+    window.scrollTo(0,0);
   }
 </script>
 </body>
