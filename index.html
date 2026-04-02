@@ -103,15 +103,11 @@
         <span class="brand-tagline">Write like it matters.</span>
       </div>
     </div>
-    <nav>
+    <nav id="main-nav">
       <button id="nav-home" class="active" onclick="showPage('home')">Home</button>
-      <button id="nav-dashboard" onclick="showPage('dashboard')">My Essays</button>
-      <button id="nav-write" onclick="showPage('write')">Write</button>
-      <button id="nav-review" onclick="showPage('review')">Review Desk</button>
-      <button id="nav-tips" onclick="showPage('tips')">Writing Desk</button>
       <button id="nav-library" onclick="showPage('library')">Library</button>
-      <button onclick="handleLogout()" style="color: var(--squash);">Logout</button>
-    </nav>
+      <button id="nav-tips" onclick="showPage('tips')">Writing Desk</button>
+      </nav>
   </div>
 </header>
 <div id="auth-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:2000; display:none; grid-template-columns:1fr; place-items:center;">
@@ -217,19 +213,30 @@
     </div>
   </section>
 
-  <section id="dashboard" class="page">
+<section id="dashboard" class="page">
   <div style="padding: 60px; text-align: center; max-width: 800px; margin: 0 auto;">
-    <h2 style="color: var(--deep-green);">My Writing Journey</h2>
+    <h2 style="color: var(--deep-green); font-size: 2.5rem;">My Writing Journey</h2>
     
-    <div id="empty-dashboard" style="display: block; background: white; padding: 40px; border-radius: var(--radius); border: 1px dashed var(--muted);">
-      <p style="font-size: 1.2rem; color: var(--muted);">You haven't written anything yet.</p>
+    <div id="empty-dashboard" style="background: white; padding: 50px; border-radius: var(--radius); border: 2px dashed var(--border); margin-top: 2rem;">
+      <div style="font-size: 4rem; margin-bottom: 1rem;">✍️</div>
+      <p style="font-size: 1.2rem; color: var(--muted); margin-bottom: 2rem;">You haven't written anything yet. Your formal theme notebook is waiting.</p>
       <button class="btn btn-accent" onclick="showPage('write')">Write your first Kwaderno essay now</button>
     </div>
 
-    <div id="essay-list-container" style="display: none;"></div>
+    <div id="essay-list-container" style="display: none;">
+      </div>
   </div>
 </section>
-  <section id="review" class="page"><div style="padding: 100px; text-align: center;"><h2>Reviewer Desk</h2></div></section>
+  <section id="review" class="page">
+  <div style="padding: 60px; text-align: center; max-width: 800px; margin: 0 auto;">
+    <h2 style="color: var(--deep-green); font-size: 2.5rem;">Reviewer Desk</h2>
+    <div style="background: white; padding: 40px; border-radius: var(--radius); border: 1px solid var(--border);">
+      <p style="color: var(--muted);">Welcome, Professor. Below are the essays awaiting your expertise.</p>
+      <hr style="opacity: 0.1; margin: 2rem 0;">
+      <p><em>No essays submitted for review yet.</em></p>
+    </div>
+  </div>
+</section>
   <section id="tips" class="page"><div style="padding: 100px; text-align: center;"><h2>Writing Tips & Advice</h2></div></section>
   <section id="library" class="page"><div style="padding: 100px; text-align: center;"><h2>Public Essay Library</h2></div></section>
 </main>
@@ -273,181 +280,112 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   const _supabase = supabase.createClient('https://greripiiyckkfowmgvoi.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyZXJpcGlpeWNra2Zvd21ndm9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzUxOTksImV4cCI6MjA5MDY1MTE5OX0.PWEnmh2kZ7D_QQTjaJh_wHhm_n1fX79m0p4XqA325ho');
-async function signUp(email, password, username, selectedRole) {
-  // 1. Create the Auth Account
-  const { data, error } = await _supabase.auth.signUp({
-    email: email,
-    password: password,
+
+  let isSignUpMode = true; // Added missing variable
+
+  // --- 1. THE BRAIN (AUTH LISTENER) ---
+  _supabase.auth.onAuthStateChange(async (event, session) => {
+    const heroStatus = document.getElementById('hero-status');
+    
+    if (session) {
+      const { data: profile } = await _supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profile) {
+        document.getElementById('display-username').textContent = profile.username;
+        if(heroStatus) heroStatus.innerHTML = `<strong>Welcome back, ${profile.username}!</strong> You are logged in. Start writing your next essay now!`;
+        
+        updateNavigation(true, profile.role);
+        checkUserEssays(session.user.id);
+      }
+    } else {
+      if(heroStatus) heroStatus.innerText = "Kwaderno is a notebook-style writing platform where students compose essays...";
+      updateNavigation(false, null);
+    }
   });
 
-  if (error) return alert(error.message);
-
-  // 2. Save the Role and Username to the Profile table
-  const { error: profileError } = await _supabase
-    .from('profiles')
-    .insert([
-      { id: data.user.id, username: username, role: selectedRole }
-    ]);
-
-  if (profileError) alert("Profile Error: " + profileError.message);
-  else alert("Welcome to Kwaderno! Please check your email for confirmation.");
-}
-let isSignUpMode = true;
-
-function openAuth() {
-  document.getElementById('auth-modal').style.display = 'grid';
-}
-
-function closeAuth() {
-  document.getElementById('auth-modal').style.display = 'none';
-}
-
-function toggleAuthMode() {
-  isSignUpMode = !isSignUpMode;
-  const title = document.getElementById('auth-title');
-  const toggleLink = document.getElementById('auth-toggle');
-  const signupFields = document.getElementById('signup-only');
-  const btn = document.getElementById('auth-submit-btn');
-
-  if (isSignUpMode) {
-    title.innerText = "Join Kwaderno";
-    toggleLink.innerText = "Already have an account? Log in";
-    signupFields.style.display = "block";
-    btn.innerText = "Create Account";
-  } else {
-    title.innerText = "Welcome Back";
-    toggleLink.innerText = "Don't have an account? Sign up";
-    signupFields.style.display = "none";
-    btn.innerText = "Log In";
-  }
-}
-async function handleAuth() {
-  const email = document.getElementById('auth-email').value;
-  const password = document.getElementById('auth-password').value;
-  const username = document.getElementById('auth-username').value;
-  const role = document.getElementById('auth-role').value;
-
-  if (!email || !password) return alert("Please enter email and password.");
-
-  if (isSignUpMode) {
-    if (!username) return alert("Please enter a username.");
-    await signUp(email, password, username, role);
-  } else {
-    // Login logic
-    const { data, error } = await _supabase.auth.signInWithPassword({
-      email: email,
-      password: password,
-    });
+  // --- 2. DYNAMIC NAVIGATION ---
+  function updateNavigation(isLoggedIn, role) {
+    const nav = document.getElementById('main-nav');
+    let buttons = `<button id="nav-home" onclick="showPage('home')">Home</button>`;
     
-    if (error) {
-      alert(error.message);
+    if (isLoggedIn) {
+      buttons += `<button id="nav-dashboard" onclick="showPage('dashboard')">My Essays</button>`;
+      if (role === 'student' || role === null) {
+        buttons += `<button id="nav-write" onclick="showPage('write')">Write</button>`;
+      } else if (role === 'reviewer') {
+        buttons += `<button id="nav-review" onclick="showPage('review')">Review Desk</button>`;
+      }
+      buttons += `<button id="nav-library" onclick="showPage('library')">Library</button>`;
+      buttons += `<button onclick="handleLogout()" style="color: var(--squash);">Logout</button>`;
     } else {
-      alert("Welcome back!");
+      buttons += `<button id="nav-library" onclick="showPage('library')">Library</button>`;
+      buttons += `<button id="nav-tips" onclick="showPage('tips')">Writing Desk</button>`;
+      buttons += `<button onclick="openAuth()" style="background:var(--squash); color:var(--deep-green); font-weight:bold; margin-left:10px;">Login</button>`;
+    }
+    nav.innerHTML = buttons;
+  }
+
+  // --- 3. CHECK FOR ESSAYS ---
+  async function checkUserEssays(userId) {
+    const { data: essays } = await _supabase.from('essays').select('id').eq('student_id', userId);
+    const emptyBox = document.getElementById('empty-dashboard');
+    const listBox = document.getElementById('essay-list-container');
+
+    if (essays && essays.length > 0) {
+      emptyBox.style.display = 'none';
+      listBox.style.display = 'block';
+    } else {
+      emptyBox.style.display = 'block';
+      listBox.style.display = 'none';
+    }
+  }
+
+  // --- 4. AUTH LOGIC ---
+  function openAuth() { document.getElementById('auth-modal').style.display = 'grid'; }
+  function closeAuth() { document.getElementById('auth-modal').style.display = 'none'; }
+
+  function toggleAuthMode() {
+    isSignUpMode = !isSignUpMode;
+    const title = document.getElementById('auth-title');
+    const toggleLink = document.getElementById('auth-toggle');
+    const signupFields = document.getElementById('signup-only');
+    const btn = document.getElementById('auth-submit-btn');
+
+    title.innerText = isSignUpMode ? "Join Kwaderno" : "Welcome Back";
+    toggleLink.innerText = isSignUpMode ? "Already have an account? Log in" : "Don't have an account? Sign up";
+    signupFields.style.display = isSignUpMode ? "block" : "none";
+    btn.innerText = isSignUpMode ? "Create Account" : "Log In";
+  }
+
+  async function handleAuth() {
+    const email = document.getElementById('auth-email').value;
+    const password = document.getElementById('auth-password').value;
+    const username = document.getElementById('auth-username').value;
+    const role = document.getElementById('auth-role').value;
+
+    if (!email || !password) return alert("Fill in email and password");
+
+    if (isSignUpMode) {
+      const { data, error } = await _supabase.auth.signUp({ email, password });
+      if (error) return alert(error.message);
+      await _supabase.from('profiles').insert([{ id: data.user.id, username, role }]);
+      alert("Account created!");
       closeAuth();
-      showPage('dashboard'); // Take them to their essays after login
+    } else {
+      const { error } = await _supabase.auth.signInWithPassword({ email, password });
+      if (error) alert(error.message);
+      else closeAuth();
     }
   }
-}
-// This checks the user's status EVERY time the page loads or state changes
-_supabase.auth.onAuthStateChange(async (event, session) => {
-  if (session) {
-    // USER IS LOGGED IN
-    console.log("User is signed in:", session.user);
-    
-    // 1. Get their profile (to know if they are a student or reviewer)
-    const { data: profile } = await _supabase
-      .from('profiles')
-      .select('role, username')
-      .eq('id', session.user.id)
-      .single();
 
-    // 2. Update the Notebook UI with their real username
-    if (profile) {
-      document.getElementById('display-username').textContent = profile.username;
-      
-      // 3. Logic: Where to send them?
-      // If they just signed up/logged in, take them to the Dashboard
-      showPage('dashboard');
-      
-      // 4. Hide the "Start Writing" button on home since they are already in
-      updateNavForLoggedInUser(profile.role);
-    }
-  } else {
-    // USER IS LOGGED OUT
-    showPage('home');
-    if (!profileError) {
-    alert("Account created! Logging you in...");
-    // Force a login after signup so the user doesn't have to do it twice
-    await _supabase.auth.signInWithPassword({ email, password });
-    closeAuth();
-    showPage('dashboard');
-    }
+  async function handleLogout() {
+    await _supabase.auth.signOut();
+    location.reload();
   }
-});
-function updateNavForLoggedInUser(role) {
-  // We can use this to hide "Review Desk" from students 
-  // or hide "Write" from teachers later.
-}
-async function handleLogout() {
-  await _supabase.auth.signOut();
-  alert("Logged out!");
-  location.reload(); // Refresh to reset the UI to the Home Page
-}
-_supabase.auth.onAuthStateChange(async (event, session) => {
-  const heroStatus = document.getElementById('hero-status');
-  const navItems = document.querySelector('nav');
-
-  if (session) {
-    // 1. Get Profile (Username & Role)
-    const { data: profile } = await _supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', session.user.id)
-      .single();
-
-    // 2. Change Homepage Message
-    if(heroStatus) heroStatus.innerHTML = `<strong>Welcome back, ${profile.username}!</strong> You are logged in. Start writing your next essay now!`;
-
-    // 3. Update Dashboard Empty State
-    checkUserEssays(session.user.id);
-
-    // 4. Update Navigation (Add Logout)
-    updateNavigation(true, profile.role);
-
-  } else {
-    // User is logged out
-    if(heroStatus) heroStatus.innerText = "Kwaderno is a notebook-style writing platform...";
-    updateNavigation(false, null);
-  }
-});
-
-function updateNavigation(isLoggedIn, role) {
-  const nav = document.querySelector('nav');
-  // Clear existing buttons to prevent duplicates
-  nav.innerHTML = `
-    <button onclick="showPage('home')">Home</button>
-    ${isLoggedIn ? '<button onclick="showPage(' + "'dashboard'" + ')">My Essays</button>' : ''}
-    ${role === 'student' || !isLoggedIn ? '<button onclick="showPage(' + "'write'" + ')">Write</button>' : ''}
-    ${role === 'reviewer' ? '<button onclick="showPage(' + "'review'" + ')">Review Desk</button>' : ''}
-    <button onclick="showPage('library')">Library</button>
-    ${isLoggedIn ? '<button onclick="_supabase.auth.signOut()" style="color: var(--squash)">Logout</button>' : '<button onclick="openAuth()">Login</button>'}
-  `;
-}
-
-async function checkUserEssays(userId) {
-  const { data: essays } = await _supabase.from('essays').select('id').eq('student_id', userId);
-  const emptyBox = document.getElementById('empty-dashboard');
-  const listBox = document.getElementById('essay-list-container');
-
-  if (essays && essays.length > 0) {
-    emptyBox.style.display = 'none';
-    listBox.style.display = 'block';
-    // Logic to list essays would go here
-  } else {
-    emptyBox.style.display = 'block';
-    listBox.style.display = 'none';
-  }
-}
 </script>
 </body>
 </html>
