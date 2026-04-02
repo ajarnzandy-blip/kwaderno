@@ -288,42 +288,35 @@
   const heroStatus = document.getElementById('hero-status');
   
   if (session) {
-    console.log("Session detected:", session.user.email);
+    console.log("Session detected for:", session.user.email);
     
-    // 1. Try to get the profile
+    // Fetch Profile
     const { data: profile, error } = await _supabase
       .from('profiles')
       .select('*')
       .eq('id', session.user.id)
       .single();
 
-    if (error) {
-      console.error("Profile fetch error:", error.message);
-      // If no profile found, we might need to let them set one up
-      // For now, let's just show the dashboard with a default name
-      document.getElementById('display-username').textContent = "User";
-      updateNavigation(true, 'student'); 
-      showPage('dashboard');
-      return;
-    }
+    // FALLBACK: If profile is missing, don't crash, just use defaults
+    const userRole = profile ? profile.role : 'student';
+    const userName = profile ? profile.username : session.user.email.split('@')[0];
 
-    if (profile) {
-      document.getElementById('display-username').textContent = profile.username;
-      if(heroStatus) {
-        heroStatus.innerHTML = `<strong>Welcome back, ${profile.username}!</strong> You are logged in.`;
-      }
-      
-      updateNavigation(true, profile.role);
-      checkUserEssays(session.user.id);
-      showPage('dashboard');
-      closeAuth();
+    // Update UI
+    document.getElementById('display-username').textContent = userName;
+    if(heroStatus) {
+      heroStatus.innerHTML = `<strong>Welcome back, ${userName}!</strong> You are logged in.`;
     }
+    
+    // Update the Nav and show Dashboard
+    updateNavigation(true, userRole);
+    showPage('dashboard');
+    closeAuth();
+    
   } else {
+    console.log("No active session.");
     updateNavigation(false, null);
-    // Only go home if they were actually trying to access a locked page
   }
 });
-
   // 3. DYNAMIC NAVIGATION
   function updateNavigation(isLoggedIn, role) {
     const nav = document.getElementById('main-nav');
