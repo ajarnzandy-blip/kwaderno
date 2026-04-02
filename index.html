@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kwaderno — Write like it matters.</title>
+  <style>
+    :root {
+      --deep-green: #1B4332;
+      --squash: #F4A261;
+      --paper: #fffefb;
+      --ink: #1f1f1f;
+      --muted: #5f5a54;
+      --line: rgba(27, 67, 50, 0.15);
+      --border: rgba(27, 67, 50, 0.1);
+      --radius: 12px;
+      --shadow: 0 8px 30px rgba(0,0,0,0.08);
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: #f4f7f5; color: var(--ink); line-height: 1.5; }
+
+    /* --- HEADER & NAV --- */
+    header { background: var(--deep-green); color: white; padding: 1rem 2rem; position: sticky; top: 0; z-index: 1000; box-shadow: var(--shadow); }
+    .nav-container { max-width: 1300px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+    .brand-block { display: flex; align-items: center; gap: 12px; cursor: pointer; text-decoration: none; color: inherit; }
+    .logo-container { width: 42px; height: 42px; background: var(--squash); border-radius: 8px; display: grid; place-items: center; color: var(--deep-green); }
+    .brand-text { display: flex; flex-direction: column; }
+    .brand-title { font-weight: 900; font-size: 1.4rem; line-height: 1; letter-spacing: 0.5px; }
+    .brand-tagline { font-size: 0.75rem; color: var(--squash); font-weight: 500; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+    
+    nav { display: flex; gap: 5px; }
+    nav button { background: transparent; border: none; color: rgba(255,255,255,0.8); padding: 10px 18px; cursor: pointer; border-radius: 6px; font-weight: 600; font-size: 0.95rem; transition: 0.2s; }
+    nav button:hover { color: white; background: rgba(255,255,255,0.1); }
+    nav button.active { color: var(--deep-green); background: var(--squash); }
+
+    /* --- PAGE MANAGEMENT --- */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* --- HOMEPAGE SPECIFIC --- */
+    .hero { text-align: center; padding: 6rem 1rem; max-width: 900px; margin: 0 auto; }
+    .hero h1 { font-size: 3.2rem; color: var(--deep-green); margin-bottom: 1.5rem; line-height: 1.1; font-weight: 800; }
+    .hero p { font-size: 1.2rem; color: var(--muted); margin-bottom: 2.5rem; max-width: 700px; margin-left: auto; margin-right: auto; }
+    .hero-btns { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
+
+    .how-it-works { background: white; padding: 6rem 1rem; border-top: 1px solid var(--border); }
+    .section-title { text-align: center; margin-bottom: 4rem; }
+    .section-title h2 { font-size: 2.4rem; color: var(--deep-green); margin-bottom: 1rem; }
+    
+    .steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 4rem; max-width: 1100px; margin: 0 auto; }
+    .step-card { text-align: center; padding: 0 1rem; }
+    .step-num { width: 45px; height: 45px; background: var(--deep-green); color: var(--squash); border-radius: 50%; display: grid; place-items: center; font-weight: 900; margin: 0 auto 1.5rem; font-size: 1.2rem; }
+    .step-card h3 { font-size: 1.6rem; margin-bottom: 1rem; color: var(--deep-green); }
+    .step-card p { color: var(--muted); font-size: 1.05rem; }
+
+    /* --- NOTEBOOK UX (WRITE PAGE) --- */
+    .write-container { max-width: 1000px; margin: 3rem auto; padding: 0 1rem; }
+    .write-actions { display: flex; gap: 12px; margin-bottom: 2rem; justify-content: flex-end; align-items: center; }
+    .notebook { background: var(--paper); min-height: 1000px; padding: 70px 90px; border: 1px solid var(--border); box-shadow: var(--shadow); border-radius: 4px; }
+    .notebook-header { text-align: center; border-bottom: 2px solid #000; margin-bottom: 3rem; padding-bottom: 15px; }
+    .notebook-header h2 { margin: 0; letter-spacing: 8px; font-weight: 900; font-size: 1.6rem; text-transform: uppercase; }
+
+    .meta-row { display: grid; grid-template-columns: 1.5fr 1fr 0.5fr; gap: 30px; margin-bottom: 2.5rem; }
+    .meta-item { border-bottom: 1px solid #000; padding-bottom: 5px; }
+    .meta-label { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 4px; font-family: sans-serif; }
+    .meta-val { font-family: 'Courier New', Courier, monospace; font-size: 1.1rem; }
+
+    .title-box { text-align: center; margin-bottom: 4rem; }
+    #essay-title-input { width: 100%; text-align: center; font-size: 1.8rem; font-weight: 800; border: none; border-bottom: 2px solid var(--deep-green); background: transparent; outline: none; font-family: 'Courier New', monospace; color: var(--deep-green); padding: 10px; }
+
+    .writing-area { background-image: linear-gradient(var(--line) 1px, transparent 1px); background-size: 100% 32px; line-height: 32px; }
+    #essay-body { width: 100%; min-height: 800px; background: transparent; border: none; outline: none; resize: none; font-family: 'Courier New', monospace; font-size: 1.25rem; line-height: 32px; color: var(--ink); padding: 0; }
+
+    /* --- REUSABLE BUTTONS --- */
+    .btn { padding: 14px 28px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 1rem; text-decoration: none; display: inline-block; }
+    .btn-primary { background: var(--deep-green); color: white; }
+    .btn-accent { background: var(--squash); color: var(--deep-green); }
+    .btn-outline { background: transparent; border: 2px solid var(--deep-green); color: var(--deep-green); }
+    .btn:hover { transform: translateY(-2px); opacity: 0.95; }
+
+    @media print {
+      header, .write-actions { display: none !important; }
+      body { background: white; }
+      .write-container { margin: 0; padding: 0; max-width: 100%; }
+      .notebook { box-shadow: none; border: none; padding: 40px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="nav-container">
+    <div class="brand-block" onclick="showPage('home')">
+      <div class="logo-container">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"></path>
+          <line x1="16" y1="8" x2="2" y2="22"></line>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-title">KWADERNO</span>
+        <span class="brand-tagline">Write like it matters.</span>
+      </div>
+    </div>
+    <nav>
+      <button id="nav-home" class="active" onclick="showPage('home')">Home</button>
+      <button id="nav-dashboard" onclick="showPage('dashboard')">My Essays</button>
+      <button id="nav-write" onclick="showPage('write')">Write</button>
+      <button id="nav-review" onclick="showPage('review')">Review Desk</button>
+      <button id="nav-tips" onclick="showPage('tips')">Writing Desk</button>
+      <button id="nav-library" onclick="showPage('library')">Library</button>
+    </nav>
+  </div>
+</header>
+<div id="auth-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:2000; display:none; grid-template-columns:1fr; place-items:center;">
+  <div class="card" style="width:400px; background:white; padding:2rem; position:relative;">
+    <button onclick="closeAuth()" style="position:absolute; top:10px; right:10px; border:none; background:none; cursor:pointer; font-size:1.2rem;">&times;</button>
+    
+    <h2 id="auth-title" style="color:var(--deep-green); margin-top:0;">Join Kwaderno</h2>
+    
+    <div id="auth-fields">
+      <input type="email" id="auth-email" placeholder="Email (Proton, Gmail, etc.)" style="width:100%; padding:12px; margin-bottom:10px; border:1px solid #ddd; border-radius:6px;">
+      <input type="password" id="auth-password" placeholder="Password" style="width:100%; padding:12px; margin-bottom:10px; border:1px solid #ddd; border-radius:6px;">
+      
+      <div id="signup-only" style="display:block;">
+        <input type="text" id="auth-username" placeholder="Username (e.g. BlueInk23)" style="width:100%; padding:12px; margin-bottom:10px; border:1px solid #ddd; border-radius:6px;">
+        <label style="font-size:0.8rem; font-weight:bold; color:var(--muted);">I AM A:</label>
+        <select id="auth-role" style="width:100%; padding:12px; margin-bottom:20px; border:1px solid #ddd; border-radius:6px;">
+          <option value="student">Student / Writer</option>
+          <option value="reviewer">Teacher / Reviewer</option>
+        </select>
+      </div>
+
+      <button id="auth-submit-btn" class="btn btn-primary" style="width:100%;" onclick="handleAuth()">Create Account</button>
+      <p style="text-align:center; font-size:0.9rem; margin-top:15px;">
+        <a href="#" id="auth-toggle" onclick="toggleAuthMode()" style="color:var(--deep-green); font-weight:bold;">Already have an account? Log in</a>
+      </p>
+    </div>
+  </div>
+</div>
+<main>
+  <section id="home" class="page active">
+    <div class="hero">
+      <h1>Digital Formal Theme Notebook</h1>
+      <p>Kwaderno is a notebook-style writing platform where students compose essays, reviewers proofread them through uploaded PDF feedback, and polished work can be published for others to read.</p>
+      <div class="hero-btns">
+        <button class="btn btn-primary" onclick="openAuth()">Start Writing</button>
+        <button class="btn btn-accent" onclick="showPage('library')">Explore Essays</button>
+        <button class="btn btn-outline" onclick="showPage('tips')">Browse Writing Tips</button>
+      </div>
+    </div>
+
+    <div class="how-it-works">
+      <div class="section-title">
+        <h2>How Kwaderno works</h2>
+        <p style="color: var(--muted); font-size: 1.1rem;">A simple writing and revision cycle built around seriousness, feedback, and publication.</p>
+      </div>
+      
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <h3>Write</h3>
+          <p>Students compose essays inside a formal theme notebook UX and save their work as a clean PDF submission.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <h3>Review</h3>
+          <p>Teachers and editors download the PDF, proofread it offline, and re-upload the corrected copy with notes.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <h3>Publish</h3>
+          <p>Finalized essays can be published in the public library under writer and proofreader usernames.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="write" class="page">
+    <div class="write-container">
+      <div class="write-actions">
+        <span id="status-msg" style="margin-right: auto; font-size: 0.85rem; font-weight: 600; color: var(--muted);">Ready to write</span>
+        <button class="btn btn-primary" onclick="submitDraft()">Submit for Review</button>
+        <button class="btn btn-accent" onclick="window.print()">Export to PDF</button>
+      </div>
+
+      <div class="notebook">
+        <div class="notebook-header">
+          <h2>Formal Theme</h2>
+        </div>
+
+        <div class="meta-row">
+          <div class="meta-item">
+            <span class="meta-label">Author Username</span>
+            <span id="display-username" class="meta-val">BlueInk_Writer</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Date & Time</span>
+            <span id="display-date" class="meta-val">--/--/--</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Score</span>
+            <span class="meta-val">--</span>
+          </div>
+        </div>
+
+        <div class="title-box">
+          <input type="text" id="essay-title-input" placeholder="ENTER TITLE HERE">
+        </div>
+
+        <div class="writing-area">
+          <textarea id="essay-body" placeholder="Begin your composition..."></textarea>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="dashboard" class="page"><div style="padding: 100px; text-align: center;"><h2>My Essays Dashboard</h2></div></section>
+  <section id="review" class="page"><div style="padding: 100px; text-align: center;"><h2>Reviewer Desk</h2></div></section>
+  <section id="tips" class="page"><div style="padding: 100px; text-align: center;"><h2>Writing Tips & Advice</h2></div></section>
+  <section id="library" class="page"><div style="padding: 100px; text-align: center;"><h2>Public Essay Library</h2></div></section>
+</main>
+
+<script>
+  // Navigation Engine
+  function showPage(pageId) {
+    // 1. Hide all pages
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    // 2. Remove active state from all nav buttons
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    
+    // 3. Show target page
+    document.getElementById(pageId).classList.add('active');
+    
+    // 4. Highlight target button
+    const btn = document.getElementById('nav-' + pageId);
+    if(btn) btn.classList.add('active');
+
+    // 5. Special Logic for Write page
+    if(pageId === 'write') {
+        const now = new Date();
+        document.getElementById('display-date').textContent = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], {hour: '2-numeric', minute:'2-numeric'});
+    }
+
+    window.scrollTo(0,0);
+  }
+
+  function submitDraft() {
+    const title = document.getElementById('essay-title-input').value;
+    if(!title) return alert("Please enter an essay title.");
+    
+    document.getElementById('status-msg').textContent = "Submitting...";
+    setTimeout(() => {
+        alert("Submitted! Moving to Dashboard.");
+        showPage('dashboard');
+        document.getElementById('status-msg').textContent = "Ready to write";
+    }, 1200);
+  }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const _supabase = supabase.createClient('https://greripiiyckkfowmgvoi.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyZXJpcGlpeWNra2Zvd21ndm9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzUxOTksImV4cCI6MjA5MDY1MTE5OX0.PWEnmh2kZ7D_QQTjaJh_wHhm_n1fX79m0p4XqA325ho');
+async function signUp(email, password, username, selectedRole) {
+  // 1. Create the Auth Account
+  const { data, error } = await _supabase.auth.signUp({
+    email: email,
+    password: password,
+  });
+
+  if (error) return alert(error.message);
+
+  // 2. Save the Role and Username to the Profile table
+  const { error: profileError } = await _supabase
+    .from('profiles')
+    .insert([
+      { id: data.user.id, username: username, role: selectedRole }
+    ]);
+
+  if (profileError) alert("Profile Error: " + profileError.message);
+  else alert("Welcome to Kwaderno! Please check your email for confirmation.");
+}
+let isSignUpMode = true;
+
+function openAuth() {
+  document.getElementById('auth-modal').style.display = 'grid';
+}
+
+function closeAuth() {
+  document.getElementById('auth-modal').style.display = 'none';
+}
+
+function toggleAuthMode() {
+  isSignUpMode = !isSignUpMode;
+  const title = document.getElementById('auth-title');
+  const toggleLink = document.getElementById('auth-toggle');
+  const signupFields = document.getElementById('signup-only');
+  const btn = document.getElementById('auth-submit-btn');
+
+  if (isSignUpMode) {
+    title.innerText = "Join Kwaderno";
+    toggleLink.innerText = "Already have an account? Log in";
+    signupFields.style.display = "block";
+    btn.innerText = "Create Account";
+  } else {
+    title.innerText = "Welcome Back";
+    toggleLink.innerText = "Don't have an account? Sign up";
+    signupFields.style.display = "none";
+    btn.innerText = "Log In";
+  }
+}
+async function handleAuth() {
+  const email = document.getElementById('auth-email').value;
+  const password = document.getElementById('auth-password').value;
+  const username = document.getElementById('auth-username').value;
+  const role = document.getElementById('auth-role').value;
+
+  if (!email || !password) return alert("Please enter email and password.");
+
+  if (isSignUpMode) {
+    if (!username) return alert("Please enter a username.");
+    await signUp(email, password, username, role);
+  } else {
+    // Login logic
+    const { data, error } = await _supabase.auth.signInWithPassword({
+      email: email,
+      password: password,
+    });
+    
+    if (error) {
+      alert(error.message);
+    } else {
+      alert("Welcome back!");
+      closeAuth();
+      showPage('dashboard'); // Take them to their essays after login
+    }
+  }
+}
+</script>
+</body>
+</html>
