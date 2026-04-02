@@ -121,7 +121,7 @@
     <h2 id="auth-title" style="color:var(--deep-green); margin-top:0;">Join Kwaderno</h2>
     
     <div id="auth-fields">
-      <input type="email" id="auth-email" placeholder="Email (Proton, Gmail, etc.)" style="width:100%; padding:12px; margin-bottom:10px; border:1px solid #ddd; border-radius:6px;">
+      <input type="email" id="auth-email" placeholder="Email (Outlook, Gmail, etc.)" style="width:100%; padding:12px; margin-bottom:10px; border:1px solid #ddd; border-radius:6px;">
       <input type="password" id="auth-password" placeholder="Password" style="width:100%; padding:12px; margin-bottom:10px; border:1px solid #ddd; border-radius:6px;">
       
       <div id="signup-only" style="display:block;">
@@ -144,7 +144,7 @@
   <section id="home" class="page active">
     <div class="hero">
       <h1>Digital Formal Theme Notebook</h1>
-      <p>Kwaderno is a notebook-style writing platform where students compose essays, reviewers proofread them through uploaded PDF feedback, and polished work can be published for others to read.</p>
+      <p id="hero-status">Kwaderno is a notebook-style writing platform where students compose essays, reviewers proofread them through uploaded PDF feedback, and polished work can be published for others to read.</p>
       <div class="hero-btns">
         <button class="btn btn-primary" onclick="openAuth()">Start Writing</button>
         <button class="btn btn-accent" onclick="showPage('library')">Explore Essays</button>
@@ -217,7 +217,18 @@
     </div>
   </section>
 
-  <section id="dashboard" class="page"><div style="padding: 100px; text-align: center;"><h2>My Essays Dashboard</h2></div></section>
+  <section id="dashboard" class="page">
+  <div style="padding: 60px; text-align: center; max-width: 800px; margin: 0 auto;">
+    <h2 style="color: var(--deep-green);">My Writing Journey</h2>
+    
+    <div id="empty-dashboard" style="display: block; background: white; padding: 40px; border-radius: var(--radius); border: 1px dashed var(--muted);">
+      <p style="font-size: 1.2rem; color: var(--muted);">You haven't written anything yet.</p>
+      <button class="btn btn-accent" onclick="showPage('write')">Write your first Kwaderno essay now</button>
+    </div>
+
+    <div id="essay-list-container" style="display: none;"></div>
+  </div>
+</section>
   <section id="review" class="page"><div style="padding: 100px; text-align: center;"><h2>Reviewer Desk</h2></div></section>
   <section id="tips" class="page"><div style="padding: 100px; text-align: center;"><h2>Writing Tips & Advice</h2></div></section>
   <section id="library" class="page"><div style="padding: 100px; text-align: center;"><h2>Public Essay Library</h2></div></section>
@@ -381,6 +392,61 @@ async function handleLogout() {
   await _supabase.auth.signOut();
   alert("Logged out!");
   location.reload(); // Refresh to reset the UI to the Home Page
+}
+_supabase.auth.onAuthStateChange(async (event, session) => {
+  const heroStatus = document.getElementById('hero-status');
+  const navItems = document.querySelector('nav');
+
+  if (session) {
+    // 1. Get Profile (Username & Role)
+    const { data: profile } = await _supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
+
+    // 2. Change Homepage Message
+    if(heroStatus) heroStatus.innerHTML = `<strong>Welcome back, ${profile.username}!</strong> You are logged in. Start writing your next essay now!`;
+
+    // 3. Update Dashboard Empty State
+    checkUserEssays(session.user.id);
+
+    // 4. Update Navigation (Add Logout)
+    updateNavigation(true, profile.role);
+
+  } else {
+    // User is logged out
+    if(heroStatus) heroStatus.innerText = "Kwaderno is a notebook-style writing platform...";
+    updateNavigation(false, null);
+  }
+});
+
+function updateNavigation(isLoggedIn, role) {
+  const nav = document.querySelector('nav');
+  // Clear existing buttons to prevent duplicates
+  nav.innerHTML = `
+    <button onclick="showPage('home')">Home</button>
+    ${isLoggedIn ? '<button onclick="showPage(' + "'dashboard'" + ')">My Essays</button>' : ''}
+    ${role === 'student' || !isLoggedIn ? '<button onclick="showPage(' + "'write'" + ')">Write</button>' : ''}
+    ${role === 'reviewer' ? '<button onclick="showPage(' + "'review'" + ')">Review Desk</button>' : ''}
+    <button onclick="showPage('library')">Library</button>
+    ${isLoggedIn ? '<button onclick="_supabase.auth.signOut()" style="color: var(--squash)">Logout</button>' : '<button onclick="openAuth()">Login</button>'}
+  `;
+}
+
+async function checkUserEssays(userId) {
+  const { data: essays } = await _supabase.from('essays').select('id').eq('student_id', userId);
+  const emptyBox = document.getElementById('empty-dashboard');
+  const listBox = document.getElementById('essay-list-container');
+
+  if (essays && essays.length > 0) {
+    emptyBox.style.display = 'none';
+    listBox.style.display = 'block';
+    // Logic to list essays would go here
+  } else {
+    emptyBox.style.display = 'block';
+    listBox.style.display = 'none';
+  }
 }
 </script>
 </body>
