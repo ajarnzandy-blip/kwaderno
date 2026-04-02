@@ -285,30 +285,44 @@
 
   // 2. THE BRAIN (AUTH LISTENER)
   _supabase.auth.onAuthStateChange(async (event, session) => {
-    const heroStatus = document.getElementById('hero-status');
+  const heroStatus = document.getElementById('hero-status');
+  
+  if (session) {
+    console.log("Session detected:", session.user.email);
     
-    if (session) {
-      console.log("Session detected:", session.user.email);
-      const { data: profile, error } = await _supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+    // 1. Try to get the profile
+    const { data: profile, error } = await _supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .single();
 
-      if (profile) {
-        document.getElementById('display-username').textContent = profile.username;
-        if(heroStatus) heroStatus.innerHTML = `<strong>Welcome back, ${profile.username}!</strong> You are logged in. Start writing now!`;
-        
-        updateNavigation(true, profile.role);
-        checkUserEssays(session.user.id);
-        showPage('dashboard'); // Automatically go to dashboard on login
-        closeAuth();
-      }
-    } else {
-      if(heroStatus) heroStatus.innerText = "Kwaderno is a notebook-style writing platform where students compose essays...";
-      updateNavigation(false, null);
+    if (error) {
+      console.error("Profile fetch error:", error.message);
+      // If no profile found, we might need to let them set one up
+      // For now, let's just show the dashboard with a default name
+      document.getElementById('display-username').textContent = "User";
+      updateNavigation(true, 'student'); 
+      showPage('dashboard');
+      return;
     }
-  });
+
+    if (profile) {
+      document.getElementById('display-username').textContent = profile.username;
+      if(heroStatus) {
+        heroStatus.innerHTML = `<strong>Welcome back, ${profile.username}!</strong> You are logged in.`;
+      }
+      
+      updateNavigation(true, profile.role);
+      checkUserEssays(session.user.id);
+      showPage('dashboard');
+      closeAuth();
+    }
+  } else {
+    updateNavigation(false, null);
+    // Only go home if they were actually trying to access a locked page
+  }
+});
 
   // 3. DYNAMIC NAVIGATION
   function updateNavigation(isLoggedIn, role) {
