@@ -110,6 +110,7 @@
       <button id="nav-review" onclick="showPage('review')">Review Desk</button>
       <button id="nav-tips" onclick="showPage('tips')">Writing Desk</button>
       <button id="nav-library" onclick="showPage('library')">Library</button>
+      <button onclick="handleLogout()" style="color: var(--squash);">Logout</button>
     </nav>
   </div>
 </header>
@@ -335,6 +336,51 @@ async function handleAuth() {
       showPage('dashboard'); // Take them to their essays after login
     }
   }
+}
+// This checks the user's status EVERY time the page loads or state changes
+_supabase.auth.onAuthStateChange(async (event, session) => {
+  if (session) {
+    // USER IS LOGGED IN
+    console.log("User is signed in:", session.user);
+    
+    // 1. Get their profile (to know if they are a student or reviewer)
+    const { data: profile } = await _supabase
+      .from('profiles')
+      .select('role, username')
+      .eq('id', session.user.id)
+      .single();
+
+    // 2. Update the Notebook UI with their real username
+    if (profile) {
+      document.getElementById('display-username').textContent = profile.username;
+      
+      // 3. Logic: Where to send them?
+      // If they just signed up/logged in, take them to the Dashboard
+      showPage('dashboard');
+      
+      // 4. Hide the "Start Writing" button on home since they are already in
+      updateNavForLoggedInUser(profile.role);
+    }
+  } else {
+    // USER IS LOGGED OUT
+    showPage('home');
+    if (!profileError) {
+    alert("Account created! Logging you in...");
+    // Force a login after signup so the user doesn't have to do it twice
+    await _supabase.auth.signInWithPassword({ email, password });
+    closeAuth();
+    showPage('dashboard');
+    }
+  }
+});
+function updateNavForLoggedInUser(role) {
+  // We can use this to hide "Review Desk" from students 
+  // or hide "Write" from teachers later.
+}
+async function handleLogout() {
+  await _supabase.auth.signOut();
+  alert("Logged out!");
+  location.reload(); // Refresh to reset the UI to the Home Page
 }
 </script>
 </body>
