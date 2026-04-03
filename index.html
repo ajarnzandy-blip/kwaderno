@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kwaderno — Write like it matters.</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --deep-green: #1B4332;
@@ -680,20 +679,18 @@
         <button class="btn-auth" onclick="closeFeedback()">Back to Dashboard</button>
     </div>
 </div>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-
 // --- 1. SUPABASE CONFIGURATION ---
 const SUPABASE_URL = 'https://greripiiyckkfowmgvoi.supabase.co'; 
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyZXJpcGlpeWNra2Zvd21ndm9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzUxOTksImV4cCI6MjA5MDY1MTE5OX0.PWEnmh2kZ7D_QQTjaJh_wHhm_n1fX79m0p4XqA325ho';
 
-const supabaseClient = window.supabaseClient.createClient(
+const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY
 );
 
-// --- 1. DATA & STATE ---
-// Ensure these variables ARE NOT declared again anywhere else!
+// --- DATA & STATE ---
 let currentUser = null; 
 let currentRev = null;
 let activeEssayId = null; 
