@@ -527,17 +527,6 @@
     </div>
 </section>
 
-<section id="signup-page" class="page">
-    <div class="auth-container">
-        <h2 style="color:var(--deep-green)">Student Sign-up</h2>
-        <input type="text" id="reg-name" placeholder="Full Name">
-        <input type="text" id="reg-user" placeholder="Username">
-        <input type="password" id="reg-pass" placeholder="Password">
-        <button class="btn-auth" onclick="performSignup()">Create Account</button>
-    </div>
-</section>
-
-
 <section id="editor-page" class="page" style="background:#d1d8d4;">
     <div class="editor-toolbar">
         <select id="font-style" onchange="updateFontStyle()" style="padding:5px; border-radius:4px;">
@@ -698,15 +687,21 @@
 const SUPABASE_URL = 'https://greripiiyckkfowmgvoi.supabase.co'; 
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyZXJpcGlpeWNra2Zvd21ndm9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzUxOTksImV4cCI6MjA5MDY1MTE5OX0.PWEnmh2kZ7D_QQTjaJh_wHhm_n1fX79m0p4XqA325ho';
 
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabaseClient.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
 
-// --- 2. GLOBAL STATE VARIABLES ---
-// We replace the arrays with "null" because we will fetch data from the DB 
-// only when the user logs in.
+// --- 1. DATA & STATE ---
+// Ensure these variables ARE NOT declared again anywhere else!
 let currentUser = null; 
 let currentRev = null;
 let activeEssayId = null; 
-let allEssays = []; // This will now be populated by a DATABASE query
+let allEssays = []; 
+let currentPage = 'home';
+let reviewers = [];
+let publishedEssays = [];
+let mockEssays = [];
 
 // This will hold the links teachers share during this session
 var globalResources = [
@@ -736,7 +731,7 @@ function startReview(id) {
     }
     
     // Open the Modal
-    const modal = document.getElementById('review-modal');
+    const modal = document.getElementById('review-editor');
     if (modal) {
         modal.style.display = 'block';
     } else {
@@ -788,7 +783,7 @@ async function performSignup() {
 
     // 1. Create the User in Supabase Auth
     // We use username + "@kwaderno.com" as a fake email since Supabase requires emails
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await supabaseClient.auth.signUp({
         email: `${username}@kwaderno.com`,
         password: password,
     });
@@ -819,7 +814,7 @@ async function performLogin() {
     const password = document.getElementById('login-pass').value;
 
     // 1. Sign in to Supabase Auth
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
         email: `${username}@kwaderno.com`,
         password: password,
     });
@@ -872,36 +867,30 @@ function logout() {
 }
 
 // --- 4. ESSAY & REVIEW LOOP ---
-function submitEssay() {
+async function submitEssay() {
     const title = document.getElementById('essay-title').value;
     const body = document.getElementById('essay-body').value;
 
     if (!title || !body) {
-        return alert("Your notebook is empty! Please write a title and content.");
+        return alert("Your notebook is empty!");
     }
 
-    // Create the "Handshake" data
-    const newSubmission = {
-        id: Date.now(), // Unique ID
-        authorId: currentUser.id, // e.g., "stu_1"
-        author: currentUser.name, // e.g., "Adrian Louis Navarro"
-        title: title,
-        body: body,
-        status: 'Submitted', // This matches the filter in the dash
-        assignedTo: 'elaine.dizon', // Default teacher for testing
-        date: new Date().toISOString().split('T')[0] // YYYY-MM-DD
-    };
+    const { error } = await supabaseClient
+        .from('essays')
+        .insert([
+            {
+                title: title,
+                body: body,
+                author_id: currentUser.id,
+                status: 'submitted'
+            }
+        ]);
 
-    // Add to the live array
-    allEssays.push(newSubmission);
+    if (error) {
+        return alert("Error: " + error.message);
+    }
 
-    alert("Theme submitted successfully to Prof. Dizon!");
-    
-    // Clear the Editor
-    document.getElementById('essay-title').value = "";
-    document.getElementById('essay-body').value = "";
-    
-    // Redirect
+    alert("Essay submitted!");
     showPage('writer-dash');
 }
 
@@ -1057,6 +1046,7 @@ function renderEssays(essaysToRender) {
             <button class="btn-read-more" onclick="viewFullEssay(${e.id})">Read Full Essay</button>
         </div>
     `).join('');
+}
 // --- SORTING LOGIC ---
 function sortEssays(criteria) {
     let sorted = [...publishedEssays]; // Create a copy to sort
@@ -1068,9 +1058,7 @@ function sortEssays(criteria) {
     } else if (criteria === 'views') {
         // We use parseInt to ensure the "412 Views" string is treated as a number
         sorted.sort((a, b) => parseInt(b.views) - parseInt(a.views));
-    }
     
-    renderEssays(sorted);
 }
 
 // --- REFRESH LOGIC ---
@@ -1214,6 +1202,20 @@ function updatePassword() {
     
     alert("Password updated successfully! Please use your new password next time you log in.");
     closeSettings();
+}
+async function fetchUserEssays() {
+    const { data, error } = await supabaseClient
+        .from('essays')
+        .select('*')
+        .eq('author_id', currentUser.id);
+
+    if (error) {
+        console.error(error);
+        return;
+    }
+
+    allEssays = data;
+    renderWriterDash();
 }
 </script>
 </body>
