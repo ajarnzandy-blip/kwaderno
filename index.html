@@ -693,12 +693,6 @@
 </div>
 
 <script>
-// --- 1. DATA & STATE ---
-var currentUser = null;
-var currentRev = null;
-var currentPage = 'home';
-var activeEssayId = null; 
-var allEssays = []; // This stores the essays moving through the cycle
 
 // --- 1. SUPABASE CONFIGURATION ---
 const SUPABASE_URL = 'https://greripiiyckkfowmgvoi.supabase.co'; 
@@ -751,19 +745,23 @@ function startReview(id) {
 }
 // --- 2. MASTER NAVIGATION ---
 function showPage(pageId) {
-    if (pageId === 'write') pageId = currentUser ? 'writer-dash' : 'login-page';
-    if (pageId === 'check') pageId = currentRev ? 'reviewer-dash' : 'reviewer-login';
-
-    currentPage = pageId;
+    // Hide all pages
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    const target = document.getElementById(pageId);
-    if(target) target.classList.add('active');
-
-    if(pageId === 'read') renderEssays(publishedEssays);
-    if(pageId === 'writer-dash') renderWriterDash();
-    if(pageId === 'reviewer-dash') renderReviewerDash();
     
-    updateNavButton(pageId);
+    // Show the requested page
+    const target = document.getElementById(pageId);
+    if (target) {
+        target.classList.add('active');
+        currentPage = pageId;
+    }
+
+    // Handle Nav Button logic
+    const navBtn = document.getElementById('nav-btn');
+    if (pageId === 'home') {
+        navBtn.style.display = 'none';
+    } else {
+        navBtn.style.display = 'block';
+    }
 }
 
 function updateNavButton(pageId) {
