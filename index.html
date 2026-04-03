@@ -4,414 +4,1222 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kwaderno — Write like it matters.</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --deep-green: #1B4332;
+      --deep-gray: #2F3E46;
       --squash: #F4A261;
       --paper: #fffefb;
       --ink: #1f1f1f;
       --muted: #5f5a54;
-      --line: rgba(27, 67, 50, 0.15);
       --border: rgba(27, 67, 50, 0.1);
-      --radius: 12px;
-      --shadow: 0 8px 30px rgba(0,0,0,0.08);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background: #f4f7f5;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+    header { 
+      background: var(--deep-green); 
+      color: white; 
+      padding: 1.0rem 1rem; /* Slightly tighter than before */
+      display: flex; 
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      width: 100%;
     }
 
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: #f4f7f5; color: var(--ink); line-height: 1.5; }
-
-    /* --- HEADER & NAV --- */
-    header { background: var(--deep-green); color: white; padding: 1rem 2rem; position: sticky; top: 0; z-index: 1000; box-shadow: var(--shadow); }
-    .nav-container { max-width: 1300px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
-    .brand-block { display: flex; align-items: center; gap: 12px; cursor: pointer; text-decoration: none; color: inherit; }
-    .logo-container { width: 42px; height: 42px; background: var(--squash); border-radius: 8px; display: grid; place-items: center; color: var(--deep-green); }
-    .brand-text { display: flex; flex-direction: column; }
-    .brand-title { font-weight: 900; font-size: 1.4rem; line-height: 1; letter-spacing: 0.5px; }
-    .brand-tagline { font-size: 0.75rem; color: var(--squash); font-weight: 500; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
-    
-    nav { display: flex; gap: 5px; }
-    nav button { background: transparent; border: none; color: rgba(255,255,255,0.8); padding: 10px 18px; cursor: pointer; border-radius: 6px; font-weight: 600; font-size: 0.95rem; transition: 0.2s; }
-    nav button:hover { color: white; background: rgba(255,255,255,0.1); }
-    nav button.active { color: var(--deep-green); background: var(--squash); }
-
-    /* --- PAGE MANAGEMENT --- */
-    .page { display: none; }
-    .page.active { display: block; }
-
-    /* --- HOMEPAGE SPECIFIC --- */
-    .hero { text-align: center; padding: 6rem 1rem; max-width: 900px; margin: 0 auto; }
-    .hero h1 { font-size: 3.2rem; color: var(--deep-green); margin-bottom: 1.5rem; line-height: 1.1; font-weight: 800; }
-    .hero p { font-size: 1.2rem; color: var(--muted); margin-bottom: 2.5rem; max-width: 700px; margin-left: auto; margin-right: auto; }
-    .hero-btns { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
-
-    .how-it-works { background: white; padding: 6rem 1rem; border-top: 1px solid var(--border); }
-    .section-title { text-align: center; margin-bottom: 4rem; }
-    .section-title h2 { font-size: 2.4rem; color: var(--deep-green); margin-bottom: 1rem; }
-    
-    .steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 4rem; max-width: 1100px; margin: 0 auto; }
-    .step-card { text-align: center; padding: 0 1rem; }
-    .step-num { width: 45px; height: 45px; background: var(--deep-green); color: var(--squash); border-radius: 50%; display: grid; place-items: center; font-weight: 900; margin: 0 auto 1.5rem; font-size: 1.2rem; }
-    .step-card h3 { font-size: 1.6rem; margin-bottom: 1rem; color: var(--deep-green); }
-    .step-card p { color: var(--muted); font-size: 1.05rem; }
-
-    /* --- NOTEBOOK UX (WRITE PAGE) --- */
-    .write-container { max-width: 1000px; margin: 3rem auto; padding: 0 1rem; }
-    .write-actions { display: flex; gap: 12px; margin-bottom: 2rem; justify-content: flex-end; align-items: center; }
-    .notebook { background: var(--paper); min-height: 1000px; padding: 70px 90px; border: 1px solid var(--border); box-shadow: var(--shadow); border-radius: 4px; }
-    .notebook-header { text-align: center; border-bottom: 2px solid #000; margin-bottom: 3rem; padding-bottom: 15px; }
-    .notebook-header h2 { margin: 0; letter-spacing: 8px; font-weight: 900; font-size: 1.6rem; text-transform: uppercase; }
-
-    .meta-row { display: grid; grid-template-columns: 1.5fr 1fr 0.5fr; gap: 30px; margin-bottom: 2.5rem; }
-    .meta-item { border-bottom: 1px solid #000; padding-bottom: 5px; }
-    .meta-label { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 4px; font-family: sans-serif; }
-    .meta-val { font-family: 'Courier New', Courier, monospace; font-size: 1.1rem; }
-
-    .title-box { text-align: center; margin-bottom: 4rem; }
-    #essay-title-input { width: 100%; text-align: center; font-size: 1.8rem; font-weight: 800; border: none; border-bottom: 2px solid var(--deep-green); background: transparent; outline: none; font-family: 'Courier New', monospace; color: var(--deep-green); padding: 10px; }
-
-    .writing-area { background-image: linear-gradient(var(--line) 1px, transparent 1px); background-size: 100% 32px; line-height: 32px; }
-    #essay-body { width: 100%; min-height: 800px; background: transparent; border: none; outline: none; resize: none; font-family: 'Courier New', monospace; font-size: 1.25rem; line-height: 32px; color: var(--ink); padding: 0; }
-
-    /* --- REUSABLE BUTTONS --- */
-    .btn { padding: 14px 28px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 1rem; text-decoration: none; display: inline-block; }
-    .btn-primary { background: var(--deep-green); color: white; }
-    .btn-accent { background: var(--squash); color: var(--deep-green); }
-    .btn-outline { background: transparent; border: 2px solid var(--deep-green); color: var(--deep-green); }
-    .btn:hover { transform: translateY(-2px); opacity: 0.95; }
-
-    @media print {
-      header, .write-actions { display: none !important; }
-      body { background: white; }
-      .write-container { margin: 0; padding: 0; max-width: 100%; }
-      .notebook { box-shadow: none; border: none; padding: 40px; }
-    }
-  </style>
-</head>
-<body>
-
-<header>
-  <div class="nav-container">
-    <div class="brand-block" onclick="showPage('home')">
-      <div class="logo-container">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"></path>
-          <line x1="16" y1="8" x2="2" y2="22"></line>
-        </svg>
-      </div>
-      <div class="brand-text">
-        <span class="brand-title">KWADERNO</span>
-        <span class="brand-tagline">Write like it matters.</span>
-      </div>
-    </div>
-    <nav id="main-nav">
-      <button id="nav-home" class="active" onclick="showPage('home')">Home</button>
-      <button id="nav-library" onclick="showPage('library')">Library</button>
-      <button id="nav-tips" onclick="showPage('tips')">Writing Desk</button>
-      </nav>
-  </div>
-</header>
-<div id="auth-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:2000; display:none; grid-template-columns:1fr; place-items:center;">
-  <div class="card" style="width:400px; background:white; padding:2rem; position:relative;">
-    <button onclick="closeAuth()" style="position:absolute; top:10px; right:10px; border:none; background:none; cursor:pointer; font-size:1.2rem;">&times;</button>
-    
-    <h2 id="auth-title" style="color:var(--deep-green); margin-top:0;">Join Kwaderno</h2>
-    
-    <div id="auth-fields">
-      <input type="email" id="auth-email" placeholder="Email (Outlook, Gmail, etc.)" style="width:100%; padding:12px; margin-bottom:10px; border:1px solid #ddd; border-radius:6px;">
-      <input type="password" id="auth-password" placeholder="Password" style="width:100%; padding:12px; margin-bottom:10px; border:1px solid #ddd; border-radius:6px;">
-      
-      <div id="signup-only" style="display:block;">
-        <input type="text" id="auth-username" placeholder="Username (e.g. BlueInk23)" style="width:100%; padding:12px; margin-bottom:10px; border:1px solid #ddd; border-radius:6px;">
-        <label style="font-size:0.8rem; font-weight:bold; color:var(--muted);">I AM A:</label>
-        <select id="auth-role" style="width:100%; padding:12px; margin-bottom:20px; border:1px solid #ddd; border-radius:6px;">
-          <option value="student">Student / Writer</option>
-          <option value="reviewer">Teacher / Reviewer</option>
-        </select>
-      </div>
-
-      <button id="auth-submit-btn" class="btn btn-primary" style="width:100%;" onclick="handleAuth()">Create Account</button>
-      <p style="text-align:center; font-size:0.9rem; margin-top:15px;">
-        <a href="#" id="auth-toggle" onclick="toggleAuthMode()" style="color:var(--deep-green); font-weight:bold;">Already have an account? Log in</a>
-      </p>
-    </div>
-  </div>
-</div>
-<main>
-  <section id="home" class="page active">
-    <div class="hero">
-      <h1>Digital Formal Theme Notebook</h1>
-      <p id="hero-status">Kwaderno is a notebook-style writing platform where students compose essays, reviewers proofread them through uploaded PDF feedback, and polished work can be published for others to read.</p>
-      <div class="hero-btns">
-        <button class="btn btn-primary" onclick="openAuth()">Start Writing</button>
-        <button class="btn btn-accent" onclick="showPage('library')">Explore Essays</button>
-        <button class="btn btn-outline" onclick="showPage('tips')">Browse Writing Tips</button>
-      </div>
-    </div>
-
-    <div class="how-it-works">
-      <div class="section-title">
-        <h2>How Kwaderno works</h2>
-        <p style="color: var(--muted); font-size: 1.1rem;">A simple writing and revision cycle built around seriousness, feedback, and publication.</p>
-      </div>
-      
-      <div class="steps-grid">
-        <div class="step-card">
-          <div class="step-num">1</div>
-          <h3>Write</h3>
-          <p>Students compose essays inside a formal theme notebook UX and save their work as a clean PDF submission.</p>
-        </div>
-        <div class="step-card">
-          <div class="step-num">2</div>
-          <h3>Review</h3>
-          <p>Teachers and editors download the PDF, proofread it offline, and re-upload the corrected copy with notes.</p>
-        </div>
-        <div class="step-card">
-          <div class="step-num">3</div>
-          <h3>Publish</h3>
-          <p>Finalized essays can be published in the public library under writer and proofreader usernames.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="write" class="page">
-    <div class="write-container">
-      <div class="write-actions">
-        <span id="status-msg" style="margin-right: auto; font-size: 0.85rem; font-weight: 600; color: var(--muted);">Ready to write</span>
-        <button class="btn btn-primary" onclick="submitDraft()">Submit for Review</button>
-        <button class="btn btn-accent" onclick="window.print()">Export to PDF</button>
-      </div>
-
-      <div class="notebook">
-        <div class="notebook-header">
-          <h2>Formal Theme</h2>
-        </div>
-
-        <div class="meta-row">
-          <div class="meta-item">
-            <span class="meta-label">Author Username</span>
-            <span id="display-username" class="meta-val">BlueInk_Writer</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Date & Time</span>
-            <span id="display-date" class="meta-val">--/--/--</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Score</span>
-            <span class="meta-val">--</span>
-          </div>
-        </div>
-
-        <div class="title-box">
-          <input type="text" id="essay-title-input" placeholder="ENTER TITLE HERE">
-        </div>
-
-        <div class="writing-area">
-          <textarea id="essay-body" placeholder="Begin your composition..."></textarea>
-        </div>
-      </div>
-    </div>
-  </section>
-
-<section id="dashboard" class="page">
-  <div style="padding: 60px; text-align: center; max-width: 800px; margin: 0 auto;">
-    <h2 style="color: var(--deep-green); font-size: 2.5rem;">My Writing Journey</h2>
-    
-    <div id="empty-dashboard" style="background: white; padding: 50px; border-radius: var(--radius); border: 2px dashed var(--border); margin-top: 2rem;">
-      <div style="font-size: 4rem; margin-bottom: 1rem;">✍️</div>
-      <p style="font-size: 1.2rem; color: var(--muted); margin-bottom: 2rem;">You haven't written anything yet. Your formal theme notebook is waiting.</p>
-      <button class="btn btn-accent" onclick="showPage('write')">Write your first Kwaderno essay now</button>
-    </div>
-
-    <div id="essay-list-container" style="display: none;">
-      </div>
-  </div>
-</section>
-  <section id="review" class="page">
-  <div style="padding: 60px; text-align: center; max-width: 800px; margin: 0 auto;">
-    <h2 style="color: var(--deep-green); font-size: 2.5rem;">Reviewer Desk</h2>
-    <div style="background: white; padding: 40px; border-radius: var(--radius); border: 1px solid var(--border);">
-      <p style="color: var(--muted);">Welcome, Professor. Below are the essays awaiting your expertise.</p>
-      <hr style="opacity: 0.1; margin: 2rem 0;">
-      <p><em>No essays submitted for review yet.</em></p>
-    </div>
-  </div>
-</section>
-  <section id="tips" class="page"><div style="padding: 100px; text-align: center;"><h2>Writing Tips & Advice</h2></div></section>
-  <section id="library" class="page"><div style="padding: 100px; text-align: center;"><h2>Public Essay Library</h2></div></section>
-</main>
-
-<script>
-  // Navigation Engine
-  function showPage(pageId) {
-    // 1. Hide all pages
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    // 2. Remove active state from all nav buttons
-    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-    
-    // 3. Show target page
-    document.getElementById(pageId).classList.add('active');
-    
-    // 4. Highlight target button
-    const btn = document.getElementById('nav-' + pageId);
-    if(btn) btn.classList.add('active');
-
-    // 5. Special Logic for Write page
-    if(pageId === 'write') {
-        const now = new Date();
-        document.getElementById('display-date').textContent = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], {hour: '2-numeric', minute:'2-numeric'});
-    }
-
-    window.scrollTo(0,0);
-  }
-
-  function submitDraft() {
-    const title = document.getElementById('essay-title-input').value;
-    if(!title) return alert("Please enter an essay title.");
-    
-    document.getElementById('status-msg').textContent = "Submitting...";
-    setTimeout(() => {
-        alert("Submitted! Moving to Dashboard.");
-        showPage('dashboard');
-        document.getElementById('status-msg').textContent = "Ready to write";
-    }, 1200);
-  }
-</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-  // 1. INITIALIZE
-  const _supabase = supabase.createClient('https://greripiiyckkfowmgvoi.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyZXJpcGlpeWNra2Zvd21ndm9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzUxOTksImV4cCI6MjA5MDY1MTE5OX0.PWEnmh2kZ7D_QQTjaJh_wHhm_n1fX79m0p4XqA325ho');
-  let isSignUpMode = true;
-
-  // 2. THE BRAIN (AUTH LISTENER)
-  _supabase.auth.onAuthStateChange(async (event, session) => {
-  const heroStatus = document.getElementById('hero-status');
-  
-  if (session) {
-    console.log("Session detected for:", session.user.email);
-    
-    // Fetch Profile
-    const { data: profile, error } = await _supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', session.user.id)
-      .single();
-
-    // FALLBACK: If profile is missing, don't crash, just use defaults
-    const userRole = profile ? profile.role : 'student';
-    const userName = profile ? profile.username : session.user.email.split('@')[0];
-
-    // Update UI
-    document.getElementById('display-username').textContent = userName;
-    if(heroStatus) {
-      heroStatus.innerHTML = `<strong>Welcome back, ${userName}!</strong> You are logged in.`;
+    .logo { 
+      width: 75px; height: 75px; /* Bigger Logo */
+      background: var(--squash); 
+      border-radius: 16px; display: grid; place-items: center; 
+      color: var(--deep-green); margin-bottom: 1.0rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
     }
     
-    // Update the Nav and show Dashboard
-    updateNavigation(true, userRole);
-    showPage('dashboard');
-    closeAuth();
-    
-  } else {
-    console.log("No active session.");
-    updateNavigation(false, null);
-  }
-});
-  // 3. DYNAMIC NAVIGATION
-  function updateNavigation(isLoggedIn, role) {
-    const nav = document.getElementById('main-nav');
-    let buttons = `<button onclick="showPage('home')">Home</button>`;
-    
-    if (isLoggedIn) {
-      buttons += `<button onclick="showPage('dashboard')">My Essays</button>`;
-      if (role === 'student') buttons += `<button onclick="showPage('write')">Write</button>`;
-      else buttons += `<button onclick="showPage('review')">Review Desk</button>`;
-      buttons += `<button onclick="showPage('library')">Library</button>`;
-      buttons += `<button onclick="handleLogout()" style="color: var(--squash);">Logout</button>`;
-    } else {
-      buttons += `<button onclick="showPage('library')">Library</button>`;
-      buttons += `<button onclick="showPage('tips')">Writing Desk</button>`;
-      buttons += `<button onclick="openAuth()" style="background:var(--squash); color:var(--deep-green); font-weight:bold; margin-left:10px;">Login</button>`;
-    }
-    nav.innerHTML = buttons;
-  }
-
-  // 4. AUTH FUNCTIONS
-  function openAuth() { document.getElementById('auth-modal').style.display = 'grid'; }
-  function closeAuth() { document.getElementById('auth-modal').style.display = 'none'; }
-  
-  function toggleAuthMode() {
-    isSignUpMode = !isSignUpMode;
-    document.getElementById('auth-title').innerText = isSignUpMode ? "Join Kwaderno" : "Welcome Back";
-    document.getElementById('signup-only').style.display = isSignUpMode ? "block" : "none";
-    document.getElementById('auth-submit-btn').innerText = isSignUpMode ? "Create Account" : "Log In";
-  }
-
-  async function handleAuth() {
-  const email = document.getElementById('auth-email').value;
-  const password = document.getElementById('auth-password').value;
-  const username = document.getElementById('auth-username').value;
-  const role = document.getElementById('auth-role').value;
-
-  if (!email || !password) return alert("Please enter both email and password.");
-
-  if (isSignUpMode) {
-    if (!username) return alert("Please choose a username.");
-    
-    // Attempt Sign Up
-    const { data, error } = await _supabase.auth.signUp({ email, password });
-    
-    if (error) {
-      // This will now tell you "Password should be at least 6 characters"
-      return alert("Sign Up Error: " + error.message); 
+    .brand-text b { 
+      display: block; 
+      font-size: 3.5rem; /* Massive Brand Title */
+      letter-spacing: 5px; line-height: 1; margin-bottom: 0.5rem;
+      font-weight: 900;
     }
     
-    // If Auth worked, create the profile
-    if (data.user) {
-       const { error: profError } = await _supabase
-         .from('profiles')
-         .insert([{ id: data.user.id, username: username, role: role }]);
-       
-       if (profError) {
-         console.error(profError);
-         alert("Auth worked, but Profile failed: " + profError.message);
-       } else {
-         alert("Account created successfully! Logging you in...");
-         closeAuth();
-       }
+    .brand-text span { 
+  display: block;
+  font-family: 'Dancing Script', cursive; 
+  font-size: 1.8rem; /* Scaled up for the new large header */
+  color: var(--squash); 
+  text-transform: none; /* Cursive must be sentence case */
+  letter-spacing: 2px; 
+  margin-top: -5px; 
+  font-weight: 600;
+}
+    /* Action Button (Stays in corner) */
+    .nav-action {
+      position: absolute;
+      top: 25px;
+      right: 25px;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: none;
     }
-  } else {
-    // Attempt Login
-    const { error } = await _supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      alert("Login Error: " + error.message);
-    } else {
-      closeAuth();
+
+    /* --- HERO --- */
+    .hero {
+      background: white;
+      text-align: center;
+      padding: 3rem 1.5rem 3rem 1.5rem; /* Tightened gap to 'How it Works' */
     }
-  }
+    
+    .hero h2 { 
+      color: var(--deep-green); 
+      font-size: 2.5rem; /* Reduced slightly to give Brand priority */
+      margin: 0 0 0.5rem 0; 
+      font-weight: 900; 
+    }
+    
+    .hero p { 
+      color: var(--muted); line-height: 1.6; max-width: 700px; 
+      margin: 0 auto 1.0rem auto; font-size: 1.1rem; 
+    }
+
+    /* PILLARS */
+    .pillars {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    
+    .btn-pillar {
+      padding: 15px 0;
+      border-radius: 12px;
+      border: none;
+      font-weight: 900;
+      font-size: 1.3rem; 
+      cursor: pointer;
+      transition: 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    
+    .btn-read { background: var(--deep-green); color: var(--squash); }
+    .btn-write { background: var(--squash); color: var(--deep-green); }
+    .btn-check { background: var(--deep-gray); color: white; }
+    
+    .btn-pillar:hover { transform: translateY(-4px); filter: brightness(1.1); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+
+    /* --- HOW IT WORKS (CENTERED & TIGHT) --- */
+    .how {
+      padding: 0.5rem 1.5rem 1.5rem 1.5rem; /* Very tight top margin */
+      text-align: center;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    
+    .how h3 { color: var(--deep-green); font-size: 2rem; margin: 0 0 0.5rem 0; font-weight: 800; }
+    .how-sub { color: var(--muted); font-size: 1.0rem; margin-bottom: 1.0rem; display: block; }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 13px;
+    }
+    
+    .step { display: flex; flex-direction: column; align-items: center; }
+    
+    .step-num { 
+      width: 40px; height: 40px; background: var(--deep-green); color: var(--squash); 
+      border-radius: 50%; display: grid; place-items: center; font-weight: 900; 
+      margin-bottom: 5px; font-size: 1.3rem;
+    }
+    
+    .step b { color: var(--deep-green); font-size: 1.2rem; margin-bottom: 05px; display: block; }
+    .step p { margin: 0; color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
+.essay-card {
+  background: white;
+  border: 1px solid var(--border);
+  padding: 20px;
+  border-radius: 12px;
+  transition: 0.2s;
 }
 
-  async function handleLogout() {
-    await _supabase.auth.signOut();
-    location.reload();
-  }
+.essay-card:hover {
+  border-color: var(--squash);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  transform: translateY(-2px);
+}
 
-  // 5. ESSAY CHECKER
-  async function checkUserEssays(userId) {
-    const { data } = await _supabase.from('essays').select('id').eq('student_id', userId);
-    document.getElementById('empty-dashboard').style.display = (data && data.length > 0) ? 'none' : 'block';
-    document.getElementById('essay-list-container').style.display = (data && data.length > 0) ? 'block' : 'none';
-  }
+.btn-read-more {
+  background: transparent;
+  color: var(--deep-green);
+  border: 1px solid var(--deep-green);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: 0.2s;
+}
 
-  // 6. PAGE ENGINE
-  function showPage(pageId) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById(pageId).classList.add('active');
-    if(pageId === 'write') {
-        document.getElementById('display-date').textContent = new Date().toLocaleDateString();
+.btn-read-more:hover {
+  background: var(--deep-green);
+  color: white;
+}
+    /* --- MOBILE --- */
+    @media (max-width: 768px) {
+      .brand-text b { font-size: 2.2rem; }
+      .brand-text span { font-size: 0.8rem; }
+      .logo { width: 60px; height: 60px; }
+      .pillars { grid-template-columns: 1fr; }
+      .steps-grid { grid-template-columns: 1fr; }
+      .hero h2 { font-size: 1.6rem; }
     }
-    window.scrollTo(0,0);
-  }
+
+    /* --- PAGE MANAGEMENT --- */
+    .page { display: none; min-height: auto; padding: 40px 20px; }
+    .page.active { display: block; }
+/* Auth & Dashboard Styles */
+.auth-container { max-width: 400px; margin: 2rem auto; padding: 2rem; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+.auth-container input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; }
+.btn-auth { width: 100%; padding: 12px; background: var(--deep-green); color: white; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+
+/* Dashboard */
+.dash-card { background: white; padding: 30px; border-radius: 15px; max-width: 600px; margin: 2rem auto; text-align: center; }
+.option-box { display: flex; gap: 20px; margin-top: 20px; justify-content: center; }
+.opt-main { flex: 2; background: var(--squash); color: var(--deep-green); padding: 40px; border-radius: 12px; font-weight: 900; cursor: pointer; border: none; font-size: 1.5rem; }
+.opt-sub { flex: 1; background: #eee; padding: 20px; border-radius: 12px; cursor: pointer; border: none; font-size: 0.9rem; }
+
+
+/* THE NOTEBOOK UX */
+.notebook-container { 
+    background: var(--paper); 
+    max-width: 800px; 
+    margin: 2rem auto; 
+    padding: 60px 50px; 
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    min-height: 1000px;
+    position: relative;
+}
+.notebook-paper {
+    background-image: linear-gradient(#e1e1e1 1px, transparent 1px);
+    background-size: 100% 2.5rem;
+    line-height: 2.5rem;
+    padding-top: 2.5rem;
+}
+.notebook-title {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-size: 1.8rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 2rem;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    color: var(--deep-green);
+    border-bottom: 2px solid var(--deep-green);
+}
+.notebook-body {
+    width: 100%;
+    min-height: 800px;
+    border: none;
+    background: transparent;
+    font-size: 1.1rem;
+    line-height: 2.5rem;
+    resize: none;
+    outline: none;
+    font-family: 'serif'; /* More formal feel */
+}
+/* Dashboard Table & Layout */
+.dash-container { max-width: 900px; margin: 2rem auto; padding: 20px; }
+.user-info { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+.stats-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+.side-panel { background: white; padding: 20px; border-radius: 12px; height: fit-content; }
+.main-panel { background: white; padding: 20px; border-radius: 12px; }
+
+.essay-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9rem; }
+.essay-table th { text-align: left; padding: 12px; border-bottom: 2px solid var(--border); color: var(--muted); }
+.essay-table td { padding: 12px; border-bottom: 1px solid var(--border); }
+.status-pill { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; }
+.status-draft { background: #eee; }
+.status-submitted { background: #fff3cd; color: #856404; }
+
+/* Editor Enhancements */
+.editor-toolbar { 
+    background: #e9ecef; padding: 10px 20px; display: flex; justify-content: space-between; 
+    align-items: center; border-radius: 8px 8px 0 0; max-width: 800px; margin: 0 auto;
+}
+.cursive-font { font-family: 'Dancing Script', cursive !important; font-size: 1.5rem !important; }
+.word-count { font-size: 0.8rem; font-weight: 700; color: var(--deep-green); 
+}
+/* AUTH & DASHBOARD LAYOUTS */
+.auth-container { max-width: 400px; margin: 2rem auto; padding: 2rem; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; }
+.auth-container input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; }
+.btn-auth { width: 100%; padding: 12px; background: var(--deep-green); color: white; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+.dash-container { max-width: 900px; margin: 2rem auto; padding: 20px; }
+.user-info { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+.stats-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+.side-panel { background: white; padding: 20px; border-radius: 12px; height: fit-content; }
+.main-panel { background: white; padding: 20px; border-radius: 12px; }
+
+/* THE NOTEBOOK UX */
+.editor-toolbar { background: #e9ecef; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0; max-width: 800px; margin: 0 auto; }
+.notebook-container { background: var(--paper); max-width: 800px; margin: 0 auto 2rem auto; padding: 60px 50px; box-shadow: 0 0 20px rgba(0,0,0,0.1); min-height: 800px; border-radius: 0 0 12px 12px; }
+.notebook-paper { background-image: linear-gradient(#e1e1e1 1px, transparent 1px); background-size: 100% 2.5rem; line-height: 2.5rem; }
+.notebook-title { width: 100%; border: none; background: transparent; font-size: 1.8rem; font-weight: 700; text-align: center; margin-bottom: 2rem; outline: none; border-bottom: 2px solid var(--deep-green); }
+.notebook-body { width: 100%; min-height: 600px; border: none; background: transparent; font-size: 1.1rem; line-height: 2.5rem; resize: none; outline: none; }
+.cursive-font { font-family: 'Dancing Script', cursive !important; font-size: 1.5rem !important; }
+
+/* REVIEWER CARDS */
+.reviewer-card { background: white; padding: 20px; border-radius: 12px; border-left: 5px solid var(--deep-green); margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: left; }
+.status-pill { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; background: #fff3cd; color: #856404; }
+  .review-split { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 20px; 
+    max-width: 1200px; 
+    margin: 0 auto; 
+}
+.original-text-view { 
+    background: #f8f9fa; 
+    padding: 20px; 
+    border-radius: 8px; 
+    border: 1px solid #ddd; 
+    line-height: 1.6; 
+    white-space: pre-wrap; /* Keeps the student's line breaks */
+}
+.correction-input { 
+    width: 100%; 
+    height: 500px; 
+    padding: 20px; 
+    border-radius: 8px; 
+    border: 2px solid var(--deep-green); 
+    font-family: inherit; 
+    font-size: 1rem; 
+    resize: none; 
+    outline: none;
+}
+.teacher-notes {
+    width: 100%;
+    margin-top: 15px;
+    padding: 10px;
+    border: 1px dashed #999;
+    border-radius: 6px;
+}
+/* Ensure the teacher's marks show up in the student's view */
+#view-corrected-content strike, 
+#view-corrected-content s {
+    color: red;
+    text-decoration: line-through;
+}
+
+#view-corrected-content font[color="green"] {
+    color: green;
+    text-decoration: underline;
+}
+.reviewer-card {
+    transition: 0.3s;
+    background: #fff;
+    border: 1px solid var(--border);
+}
+
+.reviewer-card:hover {
+    background: #fdfdfd;
+}
+
+#completed-list .reviewer-card {
+    opacity: 0.8; /* Makes finished work look "archived" */
+    border-left: 5px solid #bdc3c7;
+}
+/* Highlight table rows on hover */
+.essay-table tr:hover {
+    background-color: #f8fbf9;
+    transform: scale(1.01);
+}
+
+/* Make the archive cards look like buttons */
+#completed-list .reviewer-card:hover {
+    border-color: var(--deep-green);
+    background: #fdfdfd;
+    opacity: 1;
+}
+/* This forces the first line of every new paragraph to indent automatically */
+.notebook-body {
+    text-indent: 50px; 
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+#essay-body {
+    text-indent: 40px; /* Adjust this number to make the indent wider or narrower */
+    padding-left: 10px;
+    padding-right: 10px;
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo" onclick="showPage('home')" style="cursor:pointer">
+    <svg width="45" height="45" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"></path><line x1="16" y1="8" x2="2" y2="22"></line></svg>
+  </div>
+  <div class="brand-text" onclick="showPage('home')" style="cursor:pointer">
+    <b>KWADERNO</b>
+    <span>Write like it matters.</span>
+  </div>
+  <button id="nav-btn" class="nav-action" onclick="handleNavAction()">Back</button>
+</header>
+
+<main>
+  <section id="home" class="page active" style="padding: 0;">
+    <div class="hero">
+      <h2>Digital Formal Theme Notebook</h2>
+      <p>Kwaderno is a digital formal theme notebook where students compose essays in a focused cursive workspace, teachers provide live feedback using a digital red pen, and polished works are shared to inspire a community of writers.</p>
+      
+      <div class="pillars">
+        <button class="btn-pillar btn-read" onclick="showPage('read')">Read</button>
+        <button class="btn-pillar btn-write" onclick="showPage('write')">Write</button>
+        <button class="btn-pillar btn-check" onclick="showPage('check')">Check</button>
+      </div>
+    </div>
+
+    <div class="how">
+      <h3>How Kwaderno works</h3>
+      <span class="how-sub">A simple writing and revision cycle built around seriousness, feedback, and publication.</span>
+      
+      <div class="steps-grid">
+        <div class="step">
+          <div class="step-num">1</div>
+          <b>Write</b>
+          <p>Students compose essays inside a digital formal theme notebook. The experience is designed for focus, featuring a specialized cursive-ready workspace.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <b>Review</b>
+          <p>Teachers use a built-in Digital Red Pen to mark up the essay directly. They can strike through mistakes, insert corrections, and leave personal mentor notes in real-time.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <b>Grow</b>
+          <p>Students open their "Returned Paper" to see exactly where they can improve. It’s a direct dialogue that focuses on progress, not just a final grade.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="read" class="page">
+  <div style="max-width: 900px; margin: 0 auto;">
+    <div style="text-align: center; margin-bottom: 3rem;">
+      <h2 style="font-size: 2.5rem; color: var(--deep-green); margin-bottom: 0.5rem;">Published Essays</h2>
+      <p style="color: var(--muted);">Explore polished works from the Kwaderno community.</p>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 15px;">
+      <input type="text" 
+       placeholder="Search by title or author..." 
+       oninput="handleSearch(this.value)" 
+       style="padding: 12px 15px; border: 1px solid var(--border); border-radius: 8px; width: 100%; max-width: 400px; font-size: 1rem; margin-bottom: 20px;">
+      
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 0.85rem; font-weight: 600; color: var(--muted);">Sort by:</span>
+        <select onchange="sortEssays(this.value)" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: white; cursor: pointer;">
+          <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First</option>
+          <option value="views">Most Viewed</option>
+            <button onclick="refreshLibrary()" style="padding: 8px; border: 1px solid var(--border); border-radius: 8px; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Refresh Library">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--deep-green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 4v6h-6"></path>
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+    </svg>
+</button>
+        </select>
+      </div>
+    </div>
+
+    <div id="essay-list" style="display: grid; grid-template-columns: 1fr; gap: 15px;">
+      <div class="essay-card">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div>
+            <h3 style="margin: 0 0 5px 0; color: var(--deep-green);">The Philosophy of Modern Education</h3>
+            <span style="font-size: 0.8rem; color: var(--muted);">By <b>Juan Dela Cruz</b> • April 2, 2026</span>
+          </div>
+          <div style="background: var(--paper); padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); font-size: 0.75rem; font-weight: 700; color: var(--deep-green);">
+            👁️ 1,240 Views
+          </div>
+        </div>
+        <p style="font-size: 0.9rem; color: #444; margin: 15px 0;">A deep dive into how technology is reshaping the way we perceive traditional classroom settings...</p>
+        <button class="btn-read-more" onclick="alert('Opening full essay...')">Read Full Essay</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+ <section id="signup-page" class="page">
+    <div class="auth-container">
+        <h2 style="color:var(--deep-green)">Create Account</h2>
+        <input type="text" id="reg-name" placeholder="Full Name (Private)">
+        <input type="text" id="reg-user" placeholder="Username (Unique)">
+        <input type="password" id="reg-pass" placeholder="Password">
+        <input type="password" id="reg-confirm" placeholder="Confirm Password">
+        <button class="btn-auth" onclick="performSignup()">Create Account</button>
+    </div>
+</section>
+
+<section id="writer-dash" class="page" style="background: #f0f2f1;">
+    <div class="dash-container">
+        <div class="user-info">
+            <div>
+                <h2 id="welcome-msg" style="margin:0; color:var(--deep-green);">Welcome, Writer</h2>
+                <span style="font-size: 0.8rem; color:var(--muted);">Student Account Active</span>
+            </div>
+            <div style="display:flex; gap:10px;">
+               <button onclick="openSettings()" style="padding:8px 12px; border-radius:6px; border:1px solid #ddd; cursor:pointer;">Settings</button>
+                <button onclick="showPage('home')" style="padding:8px 12px; border-radius:6px; background:#ff4d4d; color:white; border:none; cursor:pointer;">Logout</button>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="side-panel">
+                <button class="btn-pillar btn-write" style="width:100%; margin-bottom:20px;" onclick="showPage('editor-page')">CREATE NEW ESSAY</button>
+                <h4 style="margin-bottom:10px;">Resources</h4>
+                <ul style="list-style:none; padding:0; font-size:0.9rem; line-height:2;">
+                    <li>📖 <a href="#" onclick="alert('Fake Link: Grammar Guide')">Formal Writing Guide</a></li>
+                    <li>🎥 <a href="#" onclick="alert('Fake Link: YT Video')">Video: Essay Structure</a></li>
+                    <li>📝 <a href="#" onclick="alert('Fake Link: Vocabulary')">Academic Word List</a></li>
+                </ul>
+            </div>
+            <div class="main-panel">
+                <h4 style="margin:0 0 15px 0;">My Submissions</h4>
+                <table class="essay-table">
+                    <thead>
+                        <tr><th>Title</th><th>Date</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="user-essay-list">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+  <section id="login-page" class="page">
+    <div class="auth-container">
+        <h2 style="color:var(--deep-green)">Student Login</h2>
+        <input type="text" id="login-user" placeholder="Username">
+        <input type="password" id="login-pass" placeholder="Password">
+        <button class="btn-auth" onclick="performLogin()">Login</button>
+        <p style="font-size:0.8rem; margin-top:10px;">No account? <a href="#" onclick="showPage('signup-page')">Sign up</a></p>
+    </div>
+</section>
+
+<section id="signup-page" class="page">
+    <div class="auth-container">
+        <h2 style="color:var(--deep-green)">Student Sign-up</h2>
+        <input type="text" id="reg-name" placeholder="Full Name">
+        <input type="text" id="reg-user" placeholder="Username">
+        <input type="password" id="reg-pass" placeholder="Password">
+        <button class="btn-auth" onclick="performSignup()">Create Account</button>
+    </div>
+</section>
+
+
+<section id="editor-page" class="page" style="background:#d1d8d4;">
+    <div class="editor-toolbar">
+        <select id="font-style" onchange="updateFontStyle()" style="padding:5px; border-radius:4px;">
+            <option value="block">Block Writing</option>
+            <option value="cursive">Cursive Writing</option>
+        </select>
+        <div style="font-weight:bold; color:var(--deep-green);">Words: <span id="word-num">0</span></div>
+    </div>
+    <div class="notebook-container">
+        <input type="text" id="essay-title" class="notebook-title" placeholder="ENTER TITLE HERE" onpaste="return false;">
+        <div class="notebook-paper">
+            <textarea id="essay-body" class="notebook-body" placeholder="Start writing your formal theme..." onpaste="return false;" oninput="updateStats()"></textarea>
+        </div>
+        <button class="btn-auth" style="margin-top:20px;" onclick="submitEssay()">SUBMIT ESSAY</button>
+    </div>
+</section>
+
+<section id="reviewer-login" class="page">
+    <div class="auth-container">
+        <h2 style="color:var(--deep-green)">Reviewer Portal</h2>
+        <input type="text" id="rev-user-in" placeholder="Username">
+        <input type="password" id="rev-pass-in" placeholder="Password">
+        <button class="btn-auth" onclick="performRevLogin()">Login</button>
+        <p style="font-size:0.8rem; margin-top:10px;">New editor? <a href="#" onclick="showPage('reviewer-signup')">Apply here</a></p>
+    </div>
+</section>
+
+<section id="reviewer-signup" class="page">
+    <div class="auth-container">
+        <h2 style="color:var(--deep-green)">Editor Application</h2>
+        <input type="text" id="rev-reg-name" placeholder="Full Name">
+        <input type="text" id="rev-reg-user" placeholder="Username">
+        <input type="password" id="rev-reg-pass" placeholder="Password">
+        <button class="btn-auth" onclick="showPage('reviewer-info')">Next Step</button>
+    </div>
+</section>
+
+<section id="reviewer-info" class="page">
+    <div class="auth-container">
+        <h2 style="color:var(--deep-green)">Professional Info</h2>
+        <input type="text" id="rev-prof" placeholder="Profession (e.g. Teacher)">
+        <input type="number" id="rev-exp" placeholder="Years of Experience">
+        <button class="btn-auth" onclick="completeRevSignup()">Join Kwaderno</button>
+    </div>
+</section>
+
+<section id="reviewer-dash" class="page" style="background:#f0f2f1;">
+    <div class="dash-container">
+        <div class="user-info">
+            <div>
+                <h2 id="rev-welcome" style="margin:0; color:var(--deep-green);">Hello, Editor</h2>
+                <label style="font-size:0.7rem; color:var(--muted);"><input type="checkbox" id="rev-avail" checked onchange="toggleAvail()"> Accepting New Essays</label>
+            </div>
+            <button onclick="logout()" style="color:red; background:none; border:none; cursor:pointer; font-weight:bold;">Logout</button>
+        </div>
+<div style="display:flex; gap:10px;">
+    <button onclick="openSettings()" style="background:none; border:1px solid #ccc; border-radius:5px; cursor:pointer; padding:5px 10px;">Settings</button>
+    <button onclick="logout()" style="color:red; background:none; border:none; cursor:pointer; font-weight:bold;">Logout</button>
+</div>
+        <div class="stats-grid">
+            <div class="side-panel">
+    <div style="background:var(--deep-green); color:var(--squash); padding:15px; border-radius:10px; text-align:center; margin-bottom:20px;">
+        <small>FINISHED REVIEWS</small><br>
+        <span id="finish-count" style="font-size:1.5rem; font-weight:900;">0</span>
+    </div>
+
+    <div style="background:#f8f9fa; border:1px dashed var(--deep-green); padding:15px; border-radius:8px;">
+        <h5 style="margin:0 0 10px 0; color:var(--deep-green);">Share a Resource</h5>
+        <input type="text" id="new-link-title" placeholder="Link Title" style="width:100%; margin-bottom:5px; padding:5px; font-size:0.8rem;">
+        <input type="text" id="new-link-url" placeholder="URL (https://...)" style="width:100%; margin-bottom:10px; padding:5px; font-size:0.8rem;">
+        <button onclick="publishResource()" style="width:100%; background:var(--squash); border:none; padding:8px; border-radius:5px; font-weight:bold; cursor:pointer; color:var(--deep-green);">Post to Students</button>
+    </div>
+</div>
+            <div class="main-panel">
+    <h4 style="margin-top:0; color:var(--deep-green);">Pending Assignments</h4>
+    <div id="assigned-list" style="margin-bottom: 30px;"></div>
+
+    <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+    <h4 style="color:var(--muted);">Completed Reviews</h4>
+    <div id="completed-list"></div>
+</div>
+</section>
+
+<section id="review-editor" class="page" style="background:#f0f2f1;">
+    <div class="dash-container" style="max-width: 1200px;">
+        <div class="user-info">
+            <h3 id="editing-title" style="margin:0; color:var(--deep-green);">Proofreading: Essay Title</h3>
+            <button onclick="showPage('reviewer-dash')" style="background:#666; color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">Cancel</button>
+        </div>
+
+        <div class="review-split">
+            <div>
+                <small><b>ORIGINAL STUDENT TEXT</b></small>
+                <div id="student-original-content" class="original-text-view"></div>
+            </div>
+            <div>
+    <small><b>YOUR CORRECTIONS / IMPROVED VERSION</b></small>
+    <div style="background:#eee; padding:5px; border-radius:8px 8px 0 0; border:2px solid var(--deep-green); border-bottom:none;">
+        <button type="button" onclick="applyMark('strikeThrough')" style="color:red; font-weight:bold; cursor:pointer; padding:2px 10px;"><s>STRIKE</s></button>
+        <button type="button" onclick="applyMark('foreColor', 'green')" style="color:green; font-weight:bold; cursor:pointer; padding:2px 10px;">INSERT</button>
+        <button type="button" onclick="applyMark('hiliteColor', 'yellow')" style="background:yellow; cursor:pointer; padding:2px 10px;">NOTE</button>
+    </div>
+    
+    <div id="teacher-correction-content" contenteditable="true" class="correction-input" style="background:white; overflow-y:auto; border-top:none; border-radius:0 0 8px 8px;"></div>
+    
+    <textarea id="teacher-comments" class="teacher-notes" placeholder="General comments for the student..."></textarea>
+    <button class="btn-auth" onclick="saveReview()">FINISH & RETURN TO STUDENT</button>
+</div>
+<div id="settings-modal" class="page" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; display:none; padding:20px;">
+    <div class="auth-container" style="margin-top: 100px;">
+        <h2 style="color:var(--deep-green)">Account Settings</h2>
+        <p id="settings-user-display" style="font-size:0.9rem; color:var(--muted);"></p>
+        
+        <input type="password" id="old-pass" placeholder="Current Password">
+        <input type="password" id="new-pass" placeholder="New Password">
+        <input type="password" id="confirm-new-pass" placeholder="Confirm New Password">
+        
+        <button class="btn-auth" onclick="updatePassword()">Update Password</button>
+        <button class="btn-auth" style="background:#666; margin-top:5px;" onclick="closeSettings()">Cancel</button>
+    </div>
+</div>
+
+</main>
+<footer style="padding: 2rem 1rem; text-align: center; background: #f4f7f5; border-top: 1px solid var(--border); margin-top: 2rem;">
+  <p style="color: var(--muted); font-size: 0.85rem; margin: 0;">
+    &copy; 2026 KWADERNO. All rights reserved.
+  </p>
+  <p style="margin: 5px 0 0 0;">
+    <a href="mailto:your-email@example.com" style="color: var(--deep-green); text-decoration: none; font-size: 0.85rem; font-weight: 600;">
+      ajarn.zandy@gmail.com
+    </a>
+  </p>
+</footer>
+<div id="feedback-modal" class="page" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:none; overflow-y:auto; padding:20px;">
+    <div style="background:var(--paper); max-width:800px; margin:2rem auto; padding:40px; border-radius:12px; position:relative; box-shadow:0 20px 50px rgba(0,0,0,0.5);">
+        <button onclick="closeFeedback()" style="position:absolute; top:20px; right:20px; background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+        
+        <h2 id="view-essay-title" style="color:var(--deep-green); border-bottom:2px solid #ddd; padding-bottom:10px;"></h2>
+        
+        <div style="margin:20px 0;">
+            <small><b>TEACHER'S NOTE:</b></small>
+            <p id="view-teacher-note" style="font-style:italic; background:#f0f7f4; padding:15px; border-left:4px solid var(--deep-green); color:#444;"></p>
+        </div>
+
+        <div style="margin:20px 0;">
+            <small><b>CORRECTED NOTEBOOK PAGE:</b></small>
+            <div id="view-corrected-content" class="notebook-paper" style="padding:20px; border:1px solid #ddd; min-height:300px; background-image: linear-gradient(#e1e1e1 1px, transparent 1px); background-size: 100% 2.5rem; line-height: 2.5rem;"></div>
+        </div>
+        
+        <button class="btn-auth" onclick="closeFeedback()">Back to Dashboard</button>
+    </div>
+</div>
+
+<script>
+// --- 1. DATA & STATE ---
+var currentUser = null;
+var currentRev = null;
+var currentPage = 'home';
+var activeEssayId = null; 
+var allEssays = []; // This stores the essays moving through the cycle
+
+// --- 1. SUPABASE CONFIGURATION ---
+const SUPABASE_URL = 'https://greripiiyckkfowmgvoi.supabase.co'; 
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyZXJpcGlpeWNra2Zvd21ndm9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzUxOTksImV4cCI6MjA5MDY1MTE5OX0.PWEnmh2kZ7D_QQTjaJh_wHhm_n1fX79m0p4XqA325ho';
+
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// --- 2. GLOBAL STATE VARIABLES ---
+// We replace the arrays with "null" because we will fetch data from the DB 
+// only when the user logs in.
+let currentUser = null; 
+let currentRev = null;
+let activeEssayId = null; 
+let allEssays = []; // This will now be populated by a DATABASE query
+
+// This will hold the links teachers share during this session
+var globalResources = [
+    { title: "Purdue OWL – General Writing", url: "https://owl.purdue.edu/" },
+    { title: "Oxford – Top 10 Writing Tips", url: "https://oxford.com" }
+];
+function startReview(id) {
+    console.log("Opening review for ID:", id); // Debugging line
+    
+    // Find the essay in the submissions list
+    const essay = allEssays.find(e => e.id == id); // Using == instead of === for safety
+    if (!essay) {
+        return alert("Error: Could not find that essay in the database.");
+    }
+
+    activeEssayId = id;
+
+    // Fill the teacher's grading modal
+    const editor = document.getElementById('teacher-correction-content');
+    if (editor) {
+        editor.innerHTML = essay.body;
+    }
+    
+    const comments = document.getElementById('teacher-comments');
+    if (comments) {
+        comments.value = "";
+    }
+    
+    // Open the Modal
+    const modal = document.getElementById('review-modal');
+    if (modal) {
+        modal.style.display = 'block';
+    } else {
+        alert("Error: Modal with ID 'review-modal' not found in HTML!");
+    }
+}
+// --- 2. MASTER NAVIGATION ---
+function showPage(pageId) {
+    if (pageId === 'write') pageId = currentUser ? 'writer-dash' : 'login-page';
+    if (pageId === 'check') pageId = currentRev ? 'reviewer-dash' : 'reviewer-login';
+
+    currentPage = pageId;
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const target = document.getElementById(pageId);
+    if(target) target.classList.add('active');
+
+    if(pageId === 'read') renderEssays(publishedEssays);
+    if(pageId === 'writer-dash') renderWriterDash();
+    if(pageId === 'reviewer-dash') renderReviewerDash();
+    
+    updateNavButton(pageId);
+}
+
+function updateNavButton(pageId) {
+    const btn = document.getElementById('nav-btn');
+    if (!btn) return;
+    btn.style.display = (pageId === 'home') ? "none" : "block";
+    btn.innerHTML = (pageId === 'read') 
+        ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>` 
+        : "Back";
+}
+
+function handleNavAction() {
+    if (currentPage === 'read') renderEssays(mockEssays);
+    else showPage('home');
+}
+
+// --- 3. AUTHENTICATION ---
+async function performSignup() {
+    const fullName = document.getElementById('reg-name').value;
+    const username = document.getElementById('reg-user').value;
+    const password = document.getElementById('reg-pass').value;
+
+    if (!fullName || !username || !password) return alert("Please fill all fields.");
+
+    // 1. Create the User in Supabase Auth
+    // We use username + "@kwaderno.com" as a fake email since Supabase requires emails
+    const { data, error } = await supabase.auth.signUp({
+        email: `${username}@kwaderno.com`,
+        password: password,
+    });
+
+    if (error) return alert("Signup Error: " + error.message);
+
+    if (data.user) {
+        // 2. Save the extra info (Name & Role) into our 'profiles' table
+        const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([
+                { 
+                    id: data.user.id, 
+                    full_name: fullName, 
+                    username: username, 
+                    role: 'student' 
+                }
+            ]);
+
+        if (profileError) return alert("Profile Error: " + profileError.message);
+
+        alert("Account created! You can now log in.");
+        showPage('login-page');
+    }
+}
+async function performLogin() {
+    const username = document.getElementById('login-user').value;
+    const password = document.getElementById('login-pass').value;
+
+    // 1. Sign in to Supabase Auth
+    const { data, error } = await supabase.auth.signInWithPassword({
+        email: `${username}@kwaderno.com`,
+        password: password,
+    });
+
+    if (error) return alert("Login Failed: " + error.message);
+
+    if (data.user) {
+        // 2. Fetch the user's profile info from our table
+        const { data: profile, error: pError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.user.id)
+            .single();
+
+        if (profile) {
+            currentUser = profile;
+            document.getElementById('welcome-msg').innerText = `Welcome, ${profile.full_name}`;
+            
+            // 3. Load their essays (we'll write this function next!)
+            // fetchUserEssays(); 
+            
+            showPage('writer-dash');
+        }
+    }
+}
+
+function performRevLogin() {
+    const user = document.getElementById('rev-user-in').value;
+    const found = reviewers.find(r => r.user === user);
+    if(found) {
+        currentRev = found;
+        showPage('reviewer-dash');
+    } else {
+        alert("Teacher not found. Use 'Teacher_A' or sign up.");
+    }
+}
+
+function completeRevSignup() {
+    const user = document.getElementById('rev-reg-user').value;
+    if(!user) return alert("Username required.");
+    currentRev = {user, available: true, finished: 0};
+    reviewers.push(currentRev);
+    showPage('reviewer-dash');
+}
+
+function logout() {
+    currentUser = null;
+    currentRev = null;
+    showPage('home');
+}
+
+// --- 4. ESSAY & REVIEW LOOP ---
+function submitEssay() {
+    const title = document.getElementById('essay-title').value;
+    const body = document.getElementById('essay-body').value;
+
+    if (!title || !body) {
+        return alert("Your notebook is empty! Please write a title and content.");
+    }
+
+    // Create the "Handshake" data
+    const newSubmission = {
+        id: Date.now(), // Unique ID
+        authorId: currentUser.id, // e.g., "stu_1"
+        author: currentUser.name, // e.g., "Adrian Louis Navarro"
+        title: title,
+        body: body,
+        status: 'Submitted', // This matches the filter in the dash
+        assignedTo: 'elaine.dizon', // Default teacher for testing
+        date: new Date().toISOString().split('T')[0] // YYYY-MM-DD
+    };
+
+    // Add to the live array
+    allEssays.push(newSubmission);
+
+    alert("Theme submitted successfully to Prof. Dizon!");
+    
+    // Clear the Editor
+    document.getElementById('essay-title').value = "";
+    document.getElementById('essay-body').value = "";
+    
+    // Redirect
+    showPage('writer-dash');
+}
+
+function renderWriterDash() {
+    if (!currentUser) return;
+    
+    document.getElementById('welcome-msg').innerText = "Welcome, " + currentUser.name;
+    const list = document.getElementById('user-essay-list');
+    
+    // FORGIVING FILTER: 
+    // Look for essays where the ID matches OR the Author Name matches
+    const mySubmissions = allEssays.filter(e => 
+        e.authorId === currentUser.id || 
+        e.author === currentUser.name
+    );
+    
+    const myPublished = publishedEssays.filter(e => e.authorId === currentUser.id);
+    const totalList = [...mySubmissions, ...myPublished];
+
+    // ... (rest of your table rendering code)
+}
+function renderReviewerDash() {
+    document.getElementById('rev-welcome').innerText = "Hello, " + currentRev.name;
+    
+    const pendingList = document.getElementById('assigned-list');
+    const completedList = document.getElementById('completed-list');
+    
+    // 1. Get Pending
+    const myQueue = allEssays.filter(e => e.assignedTo === currentRev.user && e.status !== 'Published');
+    
+    // 2. Get Completed
+    const myHistory = publishedEssays.filter(e => {
+        if (currentRev.user === 'elaine.dizon' && e.authorId === 'stu_1') return true;
+        if (currentRev.user === 'victor.salazar' && e.authorId === 'stu_2') return true;
+        if (currentRev.user === 'patricia.romero' && e.authorId === 'stu_3') return true;
+        if (currentRev.user === 'jonathan.alindogan' && e.authorId === 'stu_4') return true;
+        if (currentRev.user === 'sofia.mendoza' && e.authorId === 'stu_5') return true;
+        return false;
+    });
+
+    // Render Pending
+    pendingList.innerHTML = myQueue.length === 0 
+        ? "<p style='color:gray; font-size:0.9rem;'>No pending assignments.</p>" 
+        : myQueue.map(e => `
+            <div class="reviewer-card">
+                <b>${e.title}</b><br>
+                <small>Author: ${e.author}</small>
+                <button onclick="startReview(${e.id})" style="float:right; background:var(--deep-green); color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Review</button>
+            </div>
+        `).join('');
+
+    // --- FIXED COMPLETED LIST LOGIC ---
+    let historyHtml = "";
+    if (myHistory.length === 0) {
+        historyHtml = "<p style='color:gray; font-size:0.9rem;'>No completed reviews yet.</p>";
+    } else {
+        myHistory.forEach(e => {
+            const displayId = e.authorId.replace('stu_', '@');
+            historyHtml += `
+                <div class="reviewer-card" onclick="openViewModal(${e.id}, true)" style="border-left-color: #ccc; display: flex; justify-content: space-between; align-items: center; cursor:pointer; margin-bottom:10px; padding:15px; background:white; border-radius:8px; border-left:5px solid #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                    <div>
+                        <b style="color:var(--deep-green); display:block;">${e.title}</b>
+                        <small style="color:var(--muted);">Author: ${displayId}</small>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="font-size: 0.7rem; font-weight: bold; color: var(--deep-green); display: block; text-transform:uppercase;">Returned</span>
+                        <small style="color: var(--muted);">${e.date}</small>
+                    </div>
+                </div>`;
+        });
+    }
+    completedList.innerHTML = historyHtml;
+}
+// --- 5. THE DIGITAL RED PEN ---
+function applyMark(command, value = null) {
+    document.execCommand(command, false, value);
+    document.getElementById('teacher-correction-content').focus();
+}
+
+function openReviewEditor(id) {
+    const essay = allEssays.find(e => e.id === id);
+    activeEssayId = id;
+    document.getElementById('editing-title').innerText = "Reviewing: " + essay.title;
+    document.getElementById('student-original-content').innerText = essay.body;
+    
+    // Set up the editable area
+    const editor = document.getElementById('teacher-correction-content');
+    editor.innerHTML = essay.body; 
+    showPage('review-editor');
+}
+
+function saveReview() {
+    const correctedHtml = document.getElementById('teacher-correction-content').innerHTML;
+    const note = document.getElementById('teacher-comments').value;
+
+    // Find the essay in our master list
+    const essay = allEssays.find(e => e.id === activeEssayId);
+    if(essay) {
+        essay.correction = correctedHtml;
+        essay.comments = note;
+        essay.status = 'Reviewed'; // THE STATUS CHANGE
+        
+        currentRev.finished++; // Increment teacher's stats
+        alert("Review complete! Paper returned to " + essay.author);
+        showPage('reviewer-dash');
+    }
+}
+
+function viewFeedback(id) {
+    const essay = allEssays.find(e => e.id === id);
+    document.getElementById('view-essay-title').innerText = essay.title;
+    document.getElementById('view-teacher-note').innerText = essay.comments || "Great job!";
+    document.getElementById('view-corrected-content').innerHTML = essay.correction;
+    document.getElementById('feedback-modal').style.display = 'block';
+}
+
+function closeFeedback() {
+    document.getElementById('feedback-modal').style.display = 'none';
+}
+
+// --- 6. HELPERS ---
+function updateStats() {
+    const text = document.getElementById('essay-body').value;
+    const count = text.trim() ? text.trim().split(/\s+/).length : 0;
+    document.getElementById('word-num').innerText = count;
+}
+
+function updateFontStyle() {
+    const isCursive = document.getElementById('font-style').value === 'cursive';
+    document.getElementById('essay-body').classList.toggle('cursive-font', isCursive);
+}
+
+function toggleAvail() {
+    currentRev.available = document.getElementById('rev-avail').checked;
+}
+// --- PUBLIC LIBRARY LOGIC ---
+function renderEssays(essaysToRender) {
+    const list = document.getElementById('essay-list');
+    if (!list) return;
+
+    list.innerHTML = essaysToRender.map(e => `
+        <div class="essay-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h3 style="margin: 0 0 5px 0; color: var(--deep-green);">${e.title}</h3>
+                    <span style="font-size: 0.8rem; color: var(--muted);">By <b>${e.author}</b> • ${e.date}</span>
+                </div>
+                <div style="background: var(--paper); padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); font-size: 0.75rem; font-weight: 700; color: var(--deep-green);">
+                    👁️ ${e.views} Views
+                </div>
+            </div>
+            <p style="font-size: 0.9rem; color: #444; margin: 15px 0;">${e.excerpt}</p>
+            <button class="btn-read-more" onclick="viewFullEssay(${e.id})">Read Full Essay</button>
+        </div>
+    `).join('');
+// --- SORTING LOGIC ---
+function sortEssays(criteria) {
+    let sorted = [...publishedEssays]; // Create a copy to sort
+    
+    if (criteria === 'newest') {
+        sorted.sort((a, b) => new Date(b.date) - new Date(a.date));
+    } else if (criteria === 'oldest') {
+        sorted.sort((a, b) => new Date(a.date) - new Date(b.date));
+    } else if (criteria === 'views') {
+        // We use parseInt to ensure the "412 Views" string is treated as a number
+        sorted.sort((a, b) => parseInt(b.views) - parseInt(a.views));
+    }
+    
+    renderEssays(sorted);
+}
+
+// --- REFRESH LOGIC ---
+function refreshLibrary() {
+    // Clear search input
+    const searchInput = document.querySelector('input[oninput="handleSearch(this.value)"]');
+    if (searchInput) searchInput.value = "";
+    
+    // Reset sort dropdown
+    const sortSelect = document.querySelector('select[onchange="sortEssays(this.value)"]');
+    if (sortSelect) sortSelect.value = "newest";
+
+    // Re-render original list
+    renderEssays(publishedEssays);
+}
+}
+
+function handleSearch(query) {
+    const filtered = publishedEssays.filter(e => 
+        e.title.toLowerCase().includes(query.toLowerCase()) || 
+        e.author.toLowerCase().includes(query.toLowerCase())
+    );
+    renderEssays(filtered);
+}
+
+function viewFullEssay(id) {
+    const essay = publishedEssays.find(e => e.id === id);
+    if (!essay) return;
+    
+    // Using your existing feedback-modal to show the full essay
+    document.getElementById('view-essay-title').innerText = essay.title;
+    document.getElementById('view-teacher-note').innerText = "Publicly shared masterpiece.";
+    document.getElementById('view-corrected-content').innerText = essay.body;
+    
+    // Show the modal
+    document.getElementById('feedback-modal').style.display = 'block';
+}
+
+function closeFeedback() {
+    document.getElementById('feedback-modal').style.display = 'none';
+}
+function openViewModal(essayId, isPublishedList = true) {
+    let essay;
+    if (isPublishedList) {
+        essay = publishedEssays.find(e => e.id === essayId);
+    } else {
+        essay = allEssays.find(e => e.id === essayId);
+    }
+
+    if (!essay) return;
+
+    // Fill the Modal with Data
+    document.getElementById('view-essay-title').innerText = essay.title;
+    
+    // If it has teacher comments, show them. If not (like a sample), show a default note.
+    document.getElementById('view-teacher-note').innerText = essay.comments || "This is a published version of the formal theme.";
+    
+    // Show the content (Prefer 'correction' if it exists, otherwise 'body')
+    const contentToDisplay = essay.correction || essay.body;
+    document.getElementById('view-corrected-content').innerHTML = contentToDisplay;
+
+    // Open the Modal
+    document.getElementById('feedback-modal').style.display = 'block';
+}
+function publishResource() {
+    const title = document.getElementById('new-link-title').value;
+    const url = document.getElementById('new-link-url').value;
+
+    if(!title || !url) return alert("Please fill in both the title and the link!");
+
+    // 1. Add to our global list
+    globalResources.unshift({ title: title, url: url });
+
+    // 2. Clear the inputs
+    document.getElementById('new-link-title').value = "";
+    document.getElementById('new-link-url').value = "";
+
+    alert(`Resource Published: ${title}`);
+    
+    // Optional: If you want to see it immediately without refreshing
+    console.log("Current Resources:", globalResources);
+}
+document.getElementById('essay-body').addEventListener('keydown', function(e) {
+    // 1. Handle Tab Key
+    if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = this.selectionStart;
+        const end = this.selectionEnd;
+        this.value = this.value.substring(0, start) + "             " + this.value.substring(end);
+        this.selectionStart = this.selectionEnd = start + 9;
+    }
+
+    // 2. Handle Enter Key (Automatic Indent for next paragraph)
+    if (e.key === 'Enter') {
+        // We use a short timeout so the 'Enter' actually registers first
+        setTimeout(() => {
+            const start = this.selectionStart;
+            const end = this.selectionEnd;
+            this.value = this.value.substring(0, start) + "             " + this.value.substring(end);
+            this.selectionStart = this.selectionEnd = start + 9;
+        }, 10);
+    }
+});
+function openSettings() {
+    const user = currentUser || currentRev;
+    if (!user) return alert("Please log in first.");
+    
+    document.getElementById('settings-user-display').innerText = "Changing password for: " + user.user;
+    document.getElementById('settings-modal').style.display = 'block';
+}
+
+function closeSettings() {
+    document.getElementById('settings-modal').style.display = 'none';
+    // Clear inputs
+    document.getElementById('old-pass').value = "";
+    document.getElementById('new-pass').value = "";
+    document.getElementById('confirm-new-pass').value = "";
+}
+
+function updatePassword() {
+    const oldP = document.getElementById('old-pass').value;
+    const newP = document.getElementById('new-pass').value;
+    const confP = document.getElementById('confirm-new-pass').value;
+    
+    // 1. Identify who is logged in
+    let userObj = currentUser || currentRev;
+
+    // 2. Validations
+    if (oldP !== userObj.pass) {
+        return alert("Current password incorrect!");
+    }
+    if (newP.length < 6) {
+        return alert("New password must be at least 6 characters.");
+    }
+    if (newP !== confP) {
+        return alert("New passwords do not match!");
+    }
+
+    // 3. Update the local "Database"
+    userObj.pass = newP;
+    
+    alert("Password updated successfully! Please use your new password next time you log in.");
+    closeSettings();
+}
 </script>
 </body>
 </html>
+
+
+
