@@ -802,7 +802,9 @@ async function performSignup(isTeacher) {
     showPage(isTeacher ? 'reviewer-login' : 'login-page');
 }
 function performRevLogin() { performLogin(true); }
-
+// Add this inside the logic that shows the teacher dashboard
+if (pageId === 'reviewer-dash') {
+    loadTeacherDashboard();
 }
 
 // --- 4. WRITER LOGIC ---
