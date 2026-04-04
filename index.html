@@ -906,7 +906,7 @@ async function openReviewEditor(essayId) {
     // 1. Change status to 'assigned' (This updates the student's dashboard!)
     const { error: updateError } = await supabaseClient
         .from('essays')
-        .update({ status: 'assigned' }) 
+        .update({ status: 'reviewing' }) 
         .eq('id', essayId);
 
     if (updateError) {
@@ -937,26 +937,24 @@ async function openReviewEditor(essayId) {
     showPage('review-editor');
 }
 async function saveReview() {
-    const correction = document.getElementById('teacher-correction-content').innerHTML;
-    const notes = document.getElementById('teacher-comments').value;
+    const teacherNotes = document.getElementById('teacher-comments').value;
+    const correctedContent = document.getElementById('teacher-correction-content').innerHTML;
 
-    const { data, error } = await supabaseClient
-  .from('essays')
-  .update({ 
-      status: 'returned', // This updates it for both sides instantly
-      teacher_corrections: correctedContent,
-      teacher_notes: notes 
-  })
-  .eq('id', activeEssayId);
+    const { error } = await supabaseClient
+        .from('essays')
+        .update({ 
+            status: 'returned', // Pushes it back to the student
+            teacher_notes: teacherNotes,
+            corrected_content: correctedContent
+        })
+        .eq('id', activeEssayId);
 
-    if (error) alert(error.message);
-    else {
-        alert("Review returned to student!");
-        loadTeacherDashboard();
+    if (!error) {
+        alert("Essay returned to student!");
         showPage('reviewer-dash');
+        loadTeacherDashboard(); // Refresh their list
     }
 }
-
 // --- 6. FEEDBACK VIEW (FOR STUDENT) ---
 async function viewFeedback(id) {
     const { data } = await supabaseClient.from('essays').select('*').eq('id', id).single();
@@ -1033,13 +1031,12 @@ async function fetchUserEssays() {
 
     // This maps the DB value to what the Student sees
     const studentStatusMap = {
-        'submitted': 'Submitted',
-        'assigned': 'Assigned',
-        'reviewing': 'Reviewing',
-        'returned': 'Returned',
-        'revising': 'Revising',
-        'published': 'Published'
-    };
+    'assigned': 'Assigned',
+    'reviewing': 'Reviewing',
+    'returned': 'Returned',
+    'rewriting': 'Rewriting',
+    'published': 'Published'
+};
 
     essays.forEach(essay => {
         const displayStatus = studentStatusMap[essay.status] || 'Processing';
@@ -1105,11 +1102,12 @@ async function loadTeacherDashboard() {
     completedList.innerHTML = '';
 
     const teacherStatusMap = {
-        'submitted': 'Received',
-        'assigned': 'Opened',
-        'reviewing': 'Checking',
-        'returned': 'Returned'
-    };
+    'assigned': 'Assigned',
+    'reviewing': 'Reviewing',
+    'returned': 'Returned',
+    'rewriting': 'Rewriting',
+    'published': 'Completed'
+};
 
     essays.forEach(essay => {
         const displayStatus = teacherStatusMap[essay.status] || 'New';
@@ -1127,6 +1125,19 @@ async function loadTeacherDashboard() {
             pendingList.innerHTML += card;
         }
     });
+}
+async function openStudentRewrite(essayId) {
+    // Student starts fixing it -> Changes to Rewriting
+    await supabaseClient.from('essays').update({ status: 'rewriting' }).eq('id', essayId);
+    
+    // ... code to open the essay in their editor ...
+}
+async function publishEssay(essayId) {
+    await supabaseClient.from('essays').update({ status: 'published' }).eq('id', essayId);
+    
+    alert("Congratulations! Your essay is published.");
+    showPage('writer-dash');
+    fetchUserEssays();
 }
 </script>
 </body>
