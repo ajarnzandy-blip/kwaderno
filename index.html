@@ -509,7 +509,7 @@
                 <h4 style="margin:0 0 15px 0;">My Submissions</h4>
                 <table class="essay-table">
                     <thead>
-                        <tr><th>Title</th><th>Date</th><th>Status</th></tr>
+                        <tr><th>Title</th><th>Date</th><th>Status</th></tr> 
                     </thead>
                     <tbody id="user-essay-list">
                         </tbody>
@@ -872,12 +872,14 @@ async function saveReview() {
     const correction = document.getElementById('teacher-correction-content').innerHTML;
     const notes = document.getElementById('teacher-comments').value;
 
-    const { error } = await supabaseClient.from('essays').update({
-        correction_body: correction,
-        teacher_notes: notes,
-        status: 'reviewed',
-        teacher_id: currentUser.id
-    }).eq('id', activeEssayId);
+    const { data, error } = await supabaseClient
+  .from('essays')
+  .update({ 
+      status: 'returned', // This updates it for both sides instantly
+      teacher_corrections: correctedContent,
+      teacher_notes: notes 
+  })
+  .eq('id', activeEssayId);
 
     if (error) alert(error.message);
     else {
@@ -949,6 +951,75 @@ window.onload = async () => {
     showPage('home');
   }
 };
+async function fetchUserEssays() {
+    const { data: essays, error } = await supabaseClient
+        .from('essays')
+        .select('*')
+        .eq('student_id', currentUser.id)
+        .order('created_at', { ascending: false });
+
+    const listBody = document.getElementById('user-essay-list');
+    listBody.innerHTML = ''; // Clear the "loading" or old state
+
+    const studentStatusMap = {
+        'submitted': 'Submitted',
+        'assigned': 'Assigned',
+        'reviewing': 'Reviewing',
+        'returned': 'Returned',
+        'revising': 'Revising',
+        'published': 'Published'
+    };
+
+    essays.forEach(essay => {
+        const displayStatus = studentStatusMap[essay.status] || 'Processing';
+        
+        const row = `
+            <tr>
+                <td><b>${essay.title}</b></td>
+                <td>${new Date(essay.created_at).toLocaleDateString()}</td>
+                <td>
+                    <span class="status-pill status-${essay.status}">
+                        ${displayStatus}
+                    </span>
+                </td>
+            </tr>
+        `;
+        listBody.innerHTML += row;
+    });
+}
+async function fetchAssignedEssays() {
+    const { data: essays, error } = await supabaseClient
+        .from('essays')
+        .select('*')
+        .eq('teacher_id', currentUser.id)
+        .neq('status', 'returned'); // Show only pending work
+
+    const container = document.getElementById('assigned-list');
+    container.innerHTML = '';
+
+    const teacherStatusMap = {
+        'submitted': 'Received',
+        'assigned': 'Opened',
+        'reviewing': 'Checking',
+        'returned': 'Returned',
+        'revising': 'Polishing',
+        'published': 'Completed'
+    };
+
+    essays.forEach(essay => {
+        const displayStatus = teacherStatusMap[essay.status] || 'New';
+        
+        container.innerHTML += `
+            <div class="reviewer-card" onclick="openReview('${essay.id}')">
+                <div style="display:flex; justify-content:space-between;">
+                    <strong>${essay.title}</strong>
+                    <span class="status-pill">${displayStatus}</span>
+                </div>
+                <small>Submitted: ${new Date(essay.created_at).toLocaleDateString()}</small>
+            </div>
+        `;
+    });
+}
 </script>
 </body>
 </html>
