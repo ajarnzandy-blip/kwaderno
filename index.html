@@ -734,107 +734,66 @@ function showPage(pageId) {
         if (navBtn) navBtn.style.display = (pageId === 'home') ? 'none' : 'block';
         window.scrollTo(0, 0);
     }
-
-    // --- DASHBOARD TRIGGERS ---
-    if (pageId === 'reviewer-dash') loadTeacherDashboard();
-    if (pageId === 'writer-dash') fetchUserEssays();
     
     // THIS LINE TRIGGERS THE LIBRARY WHEN THEY CLICK THE READ PILLAR
     if (pageId === 'read') loadPublishedLibrary(); 
 }
 // --- 3. UPDATED SIGNUP (Handles the Role correctly) ---
-async function performSignup(isTeacher = false) {
-    // 1. Determine which IDs to grab based on the role
-    const nameId = isTeacher ? 'rev-reg-name' : 'reg-name';
-    const userId = isTeacher ? 'rev-reg-user' : 'reg-user';
-    const passId = isTeacher ? 'rev-reg-pass' : 'reg-pass';
-
-    const nameValue = document.getElementById(nameId).value;
-    const userValue = document.getElementById(userId).value;
-    const passValue = document.getElementById(passId).value;
-
-    // 2. Validation
-    if (!nameValue || !userValue || !passValue) {
-        return alert("Please fill in all required fields!");
+async function performSignup(isTeacher) {
+    // 1. Grab the correct input fields based on whether it's a student or teacher
+    const prefix = isTeacher ? 'rev-' : '';
+    
+    const name = document.getElementById(`${prefix}reg-name`).value.trim();
+    const username = document.getElementById(`${prefix}reg-user`).value.trim();
+    const password = document.getElementById(`${prefix}reg-pass`).value;
+    
+    // 2. Validate passwords match (Only students have the confirm field in your HTML)
+    if (!isTeacher) {
+        const confirmPass = document.getElementById('reg-confirm').value;
+        if (password !== confirmPass) {
+            alert("Passwords do not match!");
+            return;
+        }
     }
 
-    // 3. Optional: Grab Reviewer-only data if applicable
-    let metadata = { 
-        full_name: nameValue, 
-        role: isTeacher ? 'teacher' : 'student',
-        username: userValue 
-    };
-
-    if (isTeacher) {
-        metadata.profession = document.getElementById('rev-prof').value;
-        metadata.experience = document.getElementById('rev-exp').value;
+    if (!name || !username || !password) {
+        alert("Please fill in all fields.");
+        return;
     }
 
-    // 4. Supabase Auth Call
+    // 3. THE TRICK: Turn the username into a fake email for Supabase
+    const fakeEmail = `${username.toLowerCase().replace(/\s+/g, '')}@kwaderno.app`;
+
+    console.log("Attempting to sign up:", fakeEmail);
+
+    // 4. Send it to Supabase
     const { data, error } = await supabaseClient.auth.signUp({
-    email: email,
-    password: password,
-    options: { data: { full_name: name, role: isTeacher ? 'teacher' : 'student' } }
-});
-
-    if (error) {
-        alert("Signup Error: " + error.message);
-    } else {
-        alert("Success! Account created for " + nameValue);
-        showPage(isTeacher ? 'reviewer-login' : 'login-page');
-    }
-}
-// Teacher-specific signup step 2
-function completeRevSignup() { performSignup(true); }
-
-// --- 4. UPDATED LOGIN (Fixes the ReferenceError) ---
-async function performLogin(isTeacher = false) {
-    const userIn = isTeacher 
-        ? document.getElementById('rev-user-in').value 
-        : document.getElementById('login-user').value;
-
-    const passIn = isTeacher 
-        ? document.getElementById('rev-pass-in').value 
-        : document.getElementById('login-pass').value;
-
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email: userIn + "@kwaderno.com",
-        password: passIn
+        email: fakeEmail,
+        password: password,
+        options: {
+            data: {
+                full_name: name,
+                username: username,
+                role: isTeacher ? 'reviewer' : 'student'
+            }
+        }
     });
 
     if (error) {
-        alert("Login Error: " + error.message);
+        console.error("Signup Error:", error);
+        alert("Signup Failed: " + error.message);
         return;
     }
 
-    const user = data.user;
+    // 5. Success! Clear fields and send them to the correct login page
+    alert("Account created successfully! You can now log in.");
+    
+    document.getElementById(`${prefix}reg-name`).value = '';
+    document.getElementById(`${prefix}reg-user`).value = '';
+    document.getElementById(`${prefix}reg-pass`).value = '';
+    if (!isTeacher) document.getElementById('reg-confirm').value = '';
 
-    // GET PROFILE
-    const { data: profile, error: profError } = await supabaseClient
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-    if (profError || !profile) {
-        alert("Profile not found.");
-        return;
-    }
-
-    currentUser = { ...user, ...profile };
-
-    // ROUTE
-    if (profile.role === 'teacher') {
-        document.getElementById('rev-welcome').innerText =
-            `Hello, Editor ${profile.full_name}`;
-        loadTeacherDashboard();
-        showPage('reviewer-dash');
-    } else {
-        document.getElementById('welcome-msg').innerText =
-            `Welcome, ${profile.full_name}`;
-        loadUserEssays();
-        showPage('writer-dash');
-    }
+    showPage(isTeacher ? 'reviewer-login' : 'login-page');
 }
 function performRevLogin() { performLogin(true); }
 // Add this inside the logic that shows the teacher dashboard
