@@ -711,11 +711,10 @@ function showPage(pageId) {
         const navBtn = document.getElementById('nav-btn');
         if (navBtn) navBtn.style.display = (pageId === 'home') ? 'none' : 'block';
         window.scrollTo(0, 0);
-    }
-
-    // THIS IS THE CORRECT PLACE TO TRIGGER DASHBOARD REFRESHES
+// THEY GO RIGHT HERE, BEFORE THE FINAL CLOSING BRACE
     if (pageId === 'reviewer-dash') loadTeacherDashboard();
     if (pageId === 'writer-dash') fetchUserEssays();
+    }
 }
 function handleNavAction() {
     if (!currentUser) return showPage('home');
@@ -909,19 +908,10 @@ async function loadTeacherDashboard() {
 async function openReviewEditor(essayId) {
     console.log("Opening essay:", essayId);
 
-    // 1. Change status to 'assigned' (This updates the student's dashboard!)
-    const { error: updateError } = await supabaseClient
-        .from('essays')
-        .update({ status: 'reviewing' }) 
-        .eq('id', essayId);
+    // 1. Change status to 'reviewing'
+    await supabaseClient.from('essays').update({ status: 'reviewing' }).eq('id', essayId);
 
-    if (updateError) {
-        console.error("Failed to update status:", updateError);
-        alert("Error: Could not update status. Check RLS policies.");
-        return;
-    }
-
-    // 2. Fetch the actual essay text
+    // 2. Fetch the actual essay
     const { data: essay, error: fetchError } = await supabaseClient
         .from('essays')
         .select('*')
@@ -929,15 +919,24 @@ async function openReviewEditor(essayId) {
         .single();
 
     if (fetchError) {
-        console.error("Failed to fetch essay content:", fetchError);
+        console.error("Failed to fetch essay:", fetchError);
         return;
     }
 
-    // 3. Put the text into the editing screens
+    // 3. Put the text into the editing screens (CHANGED .content TO .body)
     activeEssayId = essayId;
     document.getElementById('editing-title').innerText = `Proofreading: ${essay.title}`;
-    document.getElementById('student-original-content').innerText = essay.content || "No content.";
-    document.getElementById('teacher-correction-content').innerText = essay.content || "No content.";
+    
+    // Using innerHTML so formatting is preserved
+    document.getElementById('student-original-content').innerHTML = essay.body || "No text found.";
+    
+    // Check if teacher correction area is a textarea or a div
+    const teacherBox = document.getElementById('teacher-correction-content');
+    if (teacherBox.tagName === 'TEXTAREA') {
+        teacherBox.value = essay.body || "";
+    } else {
+        teacherBox.innerHTML = essay.body || "No text found.";
+    }
     
     // 4. Switch to the review page
     showPage('review-editor');
@@ -1151,68 +1150,56 @@ async function openStudentRewrite(essayId) {
     // ... code to open the essay in their editor ...
 }
 async function openStudentEssay(essayId, currentStatus) {
-    console.log("Student clicked essay:", essayId, "Status:", currentStatus);
-
-    // Only allow opening if it was returned or is already being rewritten
     if (currentStatus === 'returned' || currentStatus === 'rewriting') {
         
-        // Push status to rewriting
         await supabaseClient.from('essays').update({ status: 'rewriting' }).eq('id', essayId);
         
-        // Fetch the latest data including teacher notes
         const { data: essay, error } = await supabaseClient
             .from('essays')
             .select('*')
             .eq('id', essayId)
             .single();
 
-        if (error) {
-            console.error("Error loading essay details:", error);
-            alert("Could not load the essay. Check console.");
-            return;
-        }
+        if (error) return;
 
         activeEssayId = essayId;
 
-        // Populate the modal
         document.getElementById('view-essay-title').innerText = essay.title;
         document.getElementById('view-teacher-note').innerText = essay.teacher_notes || "No notes provided.";
         
-        // Load the corrected content and make it editable!
+        // CHANGED .content TO .body
         const contentBox = document.getElementById('view-corrected-content');
-        contentBox.innerHTML = essay.corrected_content || essay.content;
+        contentBox.innerHTML = essay.corrected_content || essay.body;
         contentBox.setAttribute('contenteditable', 'true'); 
 
-        // Show the modal
         document.getElementById('feedback-modal').style.display = 'block';
-        fetchUserEssays(); // Update table in background
+        fetchUserEssays(); 
 
     } else {
         alert(`This essay is currently ${currentStatus}. You can only open 'Returned' essays.`);
     }
 }
 async function publishEssay() {
-    // Grab the final polished text from the editable box
-    const polishedContent = document.getElementById('view-corrected-content').innerHTML;
+    const polishedContent = document.getElementById('view-corrected-content').innerHTML; 
 
-    // Update the database to published
+    // CHANGED 'content: polishedContent' TO 'body: polishedContent'
     const { error } = await supabaseClient
         .from('essays')
         .update({ 
             status: 'published',
-            content: polishedContent // Overwrite original with the fixed version
+            body: polishedContent 
         })
         .eq('id', activeEssayId);
 
     if (error) {
         console.error("Publish error:", error);
-        alert("Failed to publish.");
+        alert("Publish Failed: " + error.message);
         return;
     }
 
     alert("Congratulations! Your essay is now published.");
-    document.getElementById('feedback-modal').style.display = 'none'; // Close modal
-    fetchUserEssays(); // Refresh student dashboard
+    document.getElementById('feedback-modal').style.display = 'none';
+    fetchUserEssays();
 }
 </script>
 </body>
