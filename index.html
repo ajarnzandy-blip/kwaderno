@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -632,9 +633,10 @@ async function submitEssay() {
 
   const title = document.getElementById('essay-title').value.trim();
   const body  = document.getElementById('essay-body').value.trim();
+  const wordCount = body.split(/\s+/).filter(Boolean).length;
 
   if (!title) { alert('Please enter a title.'); return; }
-  if (!body)  { alert('Please write something before submitting.'); return; }
+  if (wordCount < 50) { alert(`Your essay is only ${wordCount} words. Please write at least 50 words before submitting.`); return; }
 
   const { error } = await sb.from('essays').insert([{
     student_id: currentUser.id,
@@ -683,7 +685,7 @@ async function fetchUserEssays() {
   tbody.innerHTML = essays.length === 0
     ? '<tr><td colspan="3" style="text-align:center; color:var(--muted);">No essays yet. Write one!</td></tr>'
     : essays.map(e => `
-        <tr onclick="openStudentEssay('${e.id}','${e.status}')" style="cursor:pointer;" title="Click to open">
+         <tr onclick="${e.status === 'published' ? `viewPublishedEssay('${e.id}')` : `openStudentEssay('${e.id}','${e.status}')`}" style="cursor:pointer;" title="Click to open">
           <td><b>${e.title}</b></td>
           <td>${new Date(e.created_at).toLocaleDateString()}</td>
           <td><span class="status-pill">${statusLabel[e.status] || e.status}</span></td>
@@ -733,6 +735,35 @@ async function publishEssay() {
   alert('Congratulations! Your essay is now published.');
   document.getElementById('feedback-modal').style.display = 'none';
   fetchUserEssays();
+}
+async function viewPublishedEssay(essayId) {
+  const { data: essay, error } = await sb.from('essays').select('*').eq('id', essayId).single();
+  if (error) { alert('Could not load essay.'); return; }
+
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>${essay.title}</title>
+      <style>
+        body { font-family: Georgia, serif; max-width: 800px; margin: 60px auto; padding: 40px; color: #1f1f1f; line-height: 1.8; }
+        h1 { text-align: center; color: #1B4332; border-bottom: 2px solid #1B4332; padding-bottom: 15px; }
+        .meta { text-align: center; color: #888; margin-bottom: 40px; font-size: 0.9rem; }
+        .body { font-size: 1.1rem; white-space: pre-wrap; }
+        .print-btn { display: block; margin: 30px auto; padding: 10px 30px; background: #1B4332; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; }
+        @media print { .print-btn { display: none; } }
+      </style>
+    </head>
+    <body>
+      <h1>${essay.title}</h1>
+      <p class="meta">Published on ${new Date(essay.created_at).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' })}</p>
+      <div class="body">${essay.body}</div>
+      <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    </body>
+    </html>
+  `);
+  win.document.close();
 }
 
 // ── REVIEWER: LOAD DASHBOARD ──────────────────────────────────
@@ -790,12 +821,15 @@ async function loadTeacherDashboard() {
 
 // ── REVIEWER: OPEN ESSAY FOR EDITING ─────────────────────────
 async function openReviewEditor(essayId) {
-  // Claim it by writing teacher_id and setting status
-  await sb.from('essays').update({
-    teacher_id: currentUser.id,
-    status:     'reviewing'
-  }).eq('id', essayId);
-
+  const { data: check } = await sb.from('essays').select('status').eq('id', essayId).single();
+  
+  if (!check) { alert('Could not load essay.'); return; }
+  
+  if (check.status === 'returned' || check.status === 'rewriting' || check.status === 'published') {
+    alert('This essay has already been returned to the student and is locked.');
+    return;
+  }
+  
   const { data: essay, error } = await sb.from('essays').select('*').eq('id', essayId).single();
   if (error) { console.error('openReviewEditor:', error); return; }
 
@@ -924,9 +958,15 @@ function updateStats() {
 }
 
 function applyMark(command, value = null) {
-  document.getElementById('teacher-correction-content').focus();
-  if (value) document.execCommand(command, false, value);
-  else       document.execCommand(command, false, null);
+    document.getElementById('teacher-correction-content').focus();
+    if (command === 'strikeThrough') {
+        document.execCommand('foreColor', false, 'red');
+        document.execCommand('strikeThrough', false, null);
+    } else if (value) {
+        document.execCommand(command, false, value);
+    } else {
+        document.execCommand(command, false, null);
+    }
 }
 
 // ── SETTINGS ──────────────────────────────────────────────────
@@ -960,3 +1000,4 @@ async function updatePassword() {
 </script>
 </body>
 </html>
+
