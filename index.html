@@ -672,7 +672,10 @@
             <div id="view-corrected-content" class="notebook-paper" style="padding:20px; border:1px solid #ddd; min-height:300px; background-image: linear-gradient(#e1e1e1 1px, transparent 1px); background-size: 100% 2.5rem; line-height: 2.5rem;"></div>
         </div>
         
-        <button class="btn-auth" onclick="closeFeedback()">Back to Dashboard</button>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button class="btn-auth" style="background:#666;" onclick="document.getElementById('feedback-modal').style.display = 'none'">Save Draft & Close</button>
+            <button class="btn-auth" style="background:var(--squash); color:var(--deep-green);" onclick="publishEssay()">PUBLISH FINAL</button>
+        </div>
     </div>
 </div>
 
@@ -1050,7 +1053,7 @@ async function fetchUserEssays() {
     essays.forEach(essay => {
         const displayStatus = studentStatusMap[essay.status] || 'Processing';
         const row = `
-            <tr>
+            <tr onclick="openStudentEssay('${essay.id}', '${essay.status}')" style="cursor:pointer;" title="Click to open">
                 <td><b>${essay.title}</b></td>
                 <td>${new Date(essay.created_at).toLocaleDateString()}</td>
                 <td>
@@ -1141,12 +1144,57 @@ async function openStudentRewrite(essayId) {
     
     // ... code to open the essay in their editor ...
 }
-async function publishEssay(essayId) {
-    await supabaseClient.from('essays').update({ status: 'published' }).eq('id', essayId);
-    
-    alert("Congratulations! Your essay is published.");
-    showPage('writer-dash');
-    fetchUserEssays();
+async function openStudentEssay(essayId, currentStatus) {
+    // Only let them open it if the teacher returned it, or if they are already rewriting it
+    if (currentStatus === 'returned' || currentStatus === 'rewriting') {
+        
+        // 1. Change status to 'rewriting'
+        await supabaseClient.from('essays').update({ status: 'rewriting' }).eq('id', essayId);
+        fetchUserEssays(); // Refresh dashboard behind the scenes
+
+        // 2. Fetch the essay with the teacher's notes
+        const { data: essay } = await supabaseClient.from('essays').select('*').eq('id', essayId).single();
+        activeEssayId = essayId;
+
+        // 3. Populate the Feedback Modal
+        document.getElementById('view-essay-title').innerText = essay.title;
+        document.getElementById('view-teacher-note').innerText = essay.teacher_notes || "No specific notes provided.";
+        
+        // 4. Load the text and MAKE IT EDITABLE so the student can polish it!
+        const contentBox = document.getElementById('view-corrected-content');
+        contentBox.innerHTML = essay.corrected_content || essay.content;
+        contentBox.setAttribute('contenteditable', 'true'); 
+
+        // 5. Show the modal
+        document.getElementById('feedback-modal').style.display = 'block';
+
+    } else {
+        alert(`This essay is currently ${currentStatus}. You can only open 'Returned' essays.`);
+    }
+}
+
+async function publishEssay() {
+    // Grab the final polished text from the editable box
+    const polishedContent = document.getElementById('view-corrected-content').innerHTML;
+
+    // Update the database to published
+    const { error } = await supabaseClient
+        .from('essays')
+        .update({ 
+            status: 'published',
+            content: polishedContent // Overwrite original with the fixed version
+        })
+        .eq('id', activeEssayId);
+
+    if (error) {
+        console.error("Publish error:", error);
+        alert("Failed to publish.");
+        return;
+    }
+
+    alert("Congratulations! Your essay is now published.");
+    document.getElementById('feedback-modal').style.display = 'none'; // Close modal
+    fetchUserEssays(); // Refresh student dashboard
 }
 </script>
 </body>
