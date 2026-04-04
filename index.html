@@ -730,91 +730,75 @@ function showPage(pageId) {
     if (pageId === 'read') loadPublishedLibrary(); 
 }
 // --- 3. UPDATED SIGNUP (Handles the Role correctly) ---
-async function performSignup(isTeacher) {
-    const prefix = isTeacher ? 'rev-' : '';
-    
-    // Get values
-    const name = document.getElementById(`${prefix}reg-name`).value.trim();
-    const username = document.getElementById(`${prefix}reg-user`).value.trim();
-    const password = document.getElementById(`${prefix}reg-pass`).value;
-    
-    // Basic Validation
-    if (!name || !username || !password) {
-        alert("Please fill in all fields.");
-        return;
-    }
+async function performSignup(isReviewer) {
+    const email = document.getElementById(isReviewer ? 'rev-reg-user' : 'reg-user').value + "@kwaderno.com"; // Pseudo-email
+    const password = document.getElementById(isReviewer ? 'rev-reg-pass' : 'reg-pass').value;
+    const fullName = document.getElementById(isReviewer ? 'rev-reg-name' : 'reg-name').value;
+    const username = document.getElementById(isReviewer ? 'rev-reg-user' : 'reg-user').value;
 
-    // Convert username to the "fake email" format
-    const fakeEmail = `${username.toLowerCase().replace(/\s+/g, '')}@kwaderno.app`;
-
-    // Metadata - Simplified to troubleshoot the 500 error
-    const userMetadata = {
-        full_name: name,
-        username: username,
-        role: isTeacher ? 'reviewer' : 'student'
-    };
-
-    // Only add these if it's a teacher
-    if (isTeacher) {
-        userMetadata.profession = document.getElementById('rev-prof').value;
-        userMetadata.experience = document.getElementById('rev-exp').value;
-    }
-
-    try {
-        const { data, error } = await supabaseClient.auth.signUp({
-            email: fakeEmail,
-            password: password,
-            options: { 
-                data: userMetadata,
-                // This prevents Supabase from needing a real email confirmation
-                emailRedirectTo: window.location.origin 
-            }
-        });
-
-        if (error) throw error;
-
-        alert("Account created! Redirecting to login...");
-        showPage(isTeacher ? 'reviewer-login' : 'login-page');
-
-    } catch (err) {
-        console.error("Signup Error Details:", err);
-        alert("Error: " + err.message);
-    }
-}
-async function performLogin(isTeacher) {
-    const prefix = isTeacher ? 'rev-' : '';
-    const username = document.getElementById(`${prefix}login-user`).value.trim();
-    const password = document.getElementById(`${prefix}login-pass`).value;
-
-    if (!username || !password) {
-        alert("Please enter both username and password.");
-        return;
-    }
-
-    // Must match the "fake email" logic from signup!
-    const fakeEmail = `${username.toLowerCase().replace(/\s+/g, '')}@kwaderno.app`;
-
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email: fakeEmail,
+    // 1. Create Auth User
+    const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+        email: email,
         password: password,
     });
 
-    if (error) {
-        alert("Login failed: " + error.message);
-        return;
-    }
+    if (authError) return alert(authError.message);
 
-    // Check user role from metadata to make sure they are in the right place
-    const userRole = data.user.user_metadata.role;
+    // 2. Create Profile Record
+    const { error: profileError } = await supabaseClient
+        .from('profiles')
+        .insert([{ 
+            id: authData.user.id, 
+            username: username, 
+            full_name: fullName, 
+            role: isReviewer ? 'reviewer' : 'student' 
+        }]);
+
+    if (profileError) return alert("Profile error: " + profileError.message);
+
+    alert("Account created! You can now login.");
+    showPage('home');
+}
+async function performLogin() {
+    const userIn = document.getElementById('login-user').value;
+    const passIn = document.getElementById('login-pass').value;
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: userIn + "@kwaderno.com",
+        password: passIn
+    });
+
+    if (error) return alert(error.message);
+
+    // Fetch the profile to know if they are a student or teacher
+    const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+    currentUser = profile;
+    document.getElementById('welcome-msg').innerText = `Welcome, ${profile.full_name}`;
+    loadUserEssays();
+    showPage('writer-dash');
+}
+
+async function loadUserEssays() {
+    const { data, error } = await supabaseClient
+        .from('essays')
+        .select('*')
+        .eq('student_id', currentUser.id);
+
+    if (error) console.error(error);
     
-    if (isTeacher && userRole !== 'reviewer') {
-        alert("This is a teacher login. Please use the student login page.");
-        await supabaseClient.auth.signOut();
-        return;
-    }
-
-    // Success! Redirect to dashboard
-    showPage(isTeacher ? 'reviewer-dash' : 'writer-dash');
+    const list = document.getElementById('user-essay-list');
+    list.innerHTML = data.map(essay => `
+        <tr>
+            <td>${essay.title}</td>
+            <td>${new Date(essay.created_at).toLocaleDateString()}</td>
+            <td><span class="status-pill">${essay.status}</span></td>
+        </tr>
+    `).join('');
 }
 function performRevLogin() { performLogin(true); 
 }
@@ -824,12 +808,14 @@ async function submitEssay() {
     const title = document.getElementById('essay-title').value;
     const body = document.getElementById('essay-body').value;
 
-    const { error } = await supabaseClient.from('essays').insert([{
-        student_id: currentUser.id,
-        title: title,
-        body: body,
-        status: 'submitted'
-    }]);
+    const { data, error } = await supabaseClient
+        .from('essays')
+        .insert([{ 
+            student_id: currentUser.id, 
+            title: title, 
+            content: bodyText, // Map "bodyText" to the "content" column
+            status: 'submitted' 
+        }]);
 
     if (error) alert(error.message);
     else {
@@ -1471,6 +1457,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
+
 
 
 
