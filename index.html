@@ -714,6 +714,7 @@ function showPage(pageId) {
 // THEY GO RIGHT HERE, BEFORE THE FINAL CLOSING BRACE
     if (pageId === 'reviewer-dash') loadTeacherDashboard();
     if (pageId === 'writer-dash') fetchUserEssays();
+    if (pageId === 'read-page') loadPublishedLibrary();
     }
 }
 function handleNavAction() {
@@ -1200,6 +1201,54 @@ async function publishEssay() {
     alert("Congratulations! Your essay is now published.");
     document.getElementById('feedback-modal').style.display = 'none';
     fetchUserEssays();
+}
+async function loadPublishedLibrary() {
+    console.log("Fetching published essays...");
+
+    // Fetch only published essays, newest first
+    const { data: publishedEssays, error } = await supabaseClient
+        .from('essays')
+        .select('*')
+        .eq('status', 'published')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error("Error loading library:", error);
+        return;
+    }
+
+    // Find the container on your Read page where these should go
+    // (Make sure you have a div with id="library-container" in your HTML)
+    const container = document.getElementById('library-container');
+    if (!container) {
+        console.error("Could not find 'library-container' in the HTML.");
+        return;
+    }
+
+    // Clear out any old data or loading text
+    container.innerHTML = '';
+
+    if (publishedEssays.length === 0) {
+        container.innerHTML = '<p>No essays have been published yet. Check back later!</p>';
+        return;
+    }
+
+    // Build a display card for each published essay
+    publishedEssays.forEach(essay => {
+        const publishDate = new Date(essay.created_at).toLocaleDateString();
+        
+        const card = `
+            <div class="library-card" style="border: 1px solid #ccc; padding: 20px; margin-bottom: 20px; border-radius: 8px; background: #fff;">
+                <h2 style="margin-top: 0;">${essay.title}</h2>
+                <p style="color: #666; font-size: 0.9em;">Published on: ${publishDate}</p>
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+                <div class="library-content">
+                    ${essay.content} 
+                </div>
+            </div>
+        `;
+        container.innerHTML += card;
+    });
 }
 </script>
 </body>
