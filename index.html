@@ -746,10 +746,10 @@ async function performSignup(isTeacher = false) {
 
     // 4. Supabase Auth Call
     const { data, error } = await supabaseClient.auth.signUp({
-        email: userValue + "@kwaderno.com",
-        password: passValue,
-        options: { data: metadata }
-    });
+    email: email,
+    password: password,
+    options: { data: { full_name: name, role: isTeacher ? 'teacher' : 'student' } }
+});
 
     if (error) {
         alert("Signup Error: " + error.message);
@@ -900,13 +900,30 @@ async function loadTeacherDashboard() {
     finishCount.innerText = completedCounter;
 }
 
-async function openReviewEditor(id) {
-    const { data } = await supabaseClient.from('essays').select('*').eq('id', id).single();
-    activeEssayId = id;
-    document.getElementById('editing-title').innerText = `Reviewing: ${data.title}`;
-    document.getElementById('student-original-content').innerText = data.body;
-    document.getElementById('teacher-correction-content').innerHTML = data.body; // Start with original
+async function openReviewEditor(essayId) {
+    // 1. Update the status in the DB so the student sees "Assigned"
+    await supabaseClient
+        .from('essays')
+        .update({ status: 'assigned' }) // This changes the student's view!
+        .eq('id', essayId);
+
+    // 2. Fetch the essay details to show in the editor
+    const { data: essay } = await supabaseClient
+        .from('essays')
+        .select('*')
+        .eq('id', essayId)
+        .single();
+
+    activeEssayId = essayId;
+    document.getElementById('editing-title').innerText = `Reviewing: ${essay.title}`;
+    document.getElementById('student-original-content').innerText = essay.content;
+    document.getElementById('teacher-correction-content').innerText = essay.content;
+    
     showPage('review-editor');
+    
+    // Refresh lists so the status update shows everywhere
+    fetchUserEssays();
+    loadTeacherDashboard();
 }
 
 async function saveReview() {
@@ -993,6 +1010,8 @@ window.onload = async () => {
   }
 };
 async function fetchUserEssays() {
+    if (!currentUser) return;
+
     const { data: essays, error } = await supabaseClient
         .from('essays')
         .select('*')
@@ -1000,8 +1019,9 @@ async function fetchUserEssays() {
         .order('created_at', { ascending: false });
 
     const listBody = document.getElementById('user-essay-list');
-    listBody.innerHTML = ''; // Clear the "loading" or old state
+    listBody.innerHTML = ''; 
 
+    // This maps the DB value to what the Student sees
     const studentStatusMap = {
         'submitted': 'Submitted',
         'assigned': 'Assigned',
@@ -1013,7 +1033,6 @@ async function fetchUserEssays() {
 
     essays.forEach(essay => {
         const displayStatus = studentStatusMap[essay.status] || 'Processing';
-        
         const row = `
             <tr>
                 <td><b>${essay.title}</b></td>
@@ -1062,22 +1081,12 @@ async function fetchAssignedEssays() {
     });
 }
 async function loadTeacherDashboard() {
-    // 1. Fetch essays assigned to THIS teacher
+    if (!currentUser) return;
+
     const { data: essays, error } = await supabaseClient
         .from('essays')
-        .select(`
-            id,
-            title,
-            status,
-            created_at,
-            profiles:student_id (full_name)
-        `)
+        .select('*')
         .eq('teacher_id', currentUser.id);
-
-    if (error) {
-        console.error("Error loading teacher desk:", error);
-        return;
-    }
 
     const pendingList = document.getElementById('assigned-list');
     const completedList = document.getElementById('completed-list');
@@ -1085,36 +1094,27 @@ async function loadTeacherDashboard() {
     pendingList.innerHTML = '';
     completedList.innerHTML = '';
 
-    // 2. Map the statuses for the Teacher View
     const teacherStatusMap = {
         'submitted': 'Received',
         'assigned': 'Opened',
         'reviewing': 'Checking',
-        'returned': 'Returned',
-        'revising': 'Polishing',
-        'published': 'Completed'
+        'returned': 'Returned'
     };
 
     essays.forEach(essay => {
         const displayStatus = teacherStatusMap[essay.status] || 'New';
-        const studentName = essay.profiles?.full_name || "Unknown Student";
-        
-        const cardHtml = `
-            <div class="reviewer-card" onclick="startReview('${essay.id}')">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <strong style="display:block; font-size:1.1rem;">${essay.title}</strong>
-                        <small>Student: ${studentName}</small>
-                    </div>
+        const card = `
+            <div class="reviewer-card" onclick="openReviewEditor('${essay.id}')" style="cursor:pointer">
+                <div style="display:flex; justify-content:space-between;">
+                    <strong>${essay.title}</strong>
                     <span class="status-pill">${displayStatus}</span>
                 </div>
-            </div>
-        `;
+            </div>`;
 
-        if (essay.status === 'returned' || essay.status === 'published') {
-            completedList.innerHTML += cardHtml;
+        if (essay.status === 'returned') {
+            completedList.innerHTML += card;
         } else {
-            pendingList.innerHTML += cardHtml;
+            pendingList.innerHTML += card;
         }
     });
 }
