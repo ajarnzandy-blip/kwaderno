@@ -811,6 +811,10 @@ async function performLogin(isTeacher = false) {
     }
 }
 function performRevLogin() { performLogin(true); }
+// Add this inside the logic that shows the teacher dashboard
+if (pageId === 'reviewer-dash') {
+    loadTeacherDashboard();
+}
 
 // --- 4. WRITER LOGIC ---
 async function submitEssay() {
@@ -846,17 +850,54 @@ async function loadUserEssays() {
 
 // --- 5. REVIEWER LOGIC ---
 async function loadTeacherDashboard() {
-    const { data: pending } = await supabaseClient.from('essays').select('*, profiles(full_name)').eq('status', 'submitted');
-    const { data: finished } = await supabaseClient.from('essays').select('*').eq('teacher_id', currentUser.id).eq('status', 'reviewed');
+    const { data: essays, error } = await supabaseClient
+        .from('essays')
+        .select('*')
+        .eq('teacher_id', currentUser.id);
 
-    document.getElementById('finish-count').innerText = finished.length;
+    if (error) {
+        console.error("Error loading dashboard:", error);
+        return;
+    }
+
+    const pendingList = document.getElementById('assigned-list');
+    const completedList = document.getElementById('completed-list');
+    const finishCount = document.getElementById('finish-count');
     
-    document.getElementById('assigned-list').innerHTML = pending.map(e => `
-        <div class="reviewer-card" onclick="openReviewEditor('${e.id}')" style="cursor:pointer">
-            <b>${e.title}</b><br>
-            <small>From: ${e.profiles?.full_name || 'Student'}</small>
-        </div>
-    `).join('');
+    pendingList.innerHTML = '';
+    completedList.innerHTML = '';
+    let completedCounter = 0;
+
+    // The Teacher Status Mapping you requested
+    const teacherStatusMap = {
+        'submitted': 'Received',
+        'assigned': 'Opened',
+        'reviewing': 'Checking',
+        'returned': 'Returned',
+        'revising': 'Polishing',
+        'published': 'Completed'
+    };
+
+    essays.forEach(essay => {
+        const displayStatus = teacherStatusMap[essay.status] || 'New';
+        const cardHtml = `
+            <div class="reviewer-card" onclick="openReviewEditor('${essay.id}')" style="cursor:pointer; margin-bottom:10px; padding:15px; border-left:5px solid var(--deep-green); background:white; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.05);">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong>${essay.title}</strong>
+                    <span class="status-pill">${displayStatus}</span>
+                </div>
+            </div>
+        `;
+
+        if (essay.status === 'returned' || essay.status === 'published') {
+            completedList.innerHTML += cardHtml;
+            completedCounter++;
+        } else {
+            pendingList.innerHTML += cardHtml;
+        }
+    });
+
+    finishCount.innerText = completedCounter;
 }
 
 async function openReviewEditor(id) {
@@ -1018,6 +1059,63 @@ async function fetchAssignedEssays() {
                 <small>Submitted: ${new Date(essay.created_at).toLocaleDateString()}</small>
             </div>
         `;
+    });
+}
+async function loadTeacherDashboard() {
+    // 1. Fetch essays assigned to THIS teacher
+    const { data: essays, error } = await supabaseClient
+        .from('essays')
+        .select(`
+            id,
+            title,
+            status,
+            created_at,
+            profiles:student_id (full_name)
+        `)
+        .eq('teacher_id', currentUser.id);
+
+    if (error) {
+        console.error("Error loading teacher desk:", error);
+        return;
+    }
+
+    const pendingList = document.getElementById('assigned-list');
+    const completedList = document.getElementById('completed-list');
+    
+    pendingList.innerHTML = '';
+    completedList.innerHTML = '';
+
+    // 2. Map the statuses for the Teacher View
+    const teacherStatusMap = {
+        'submitted': 'Received',
+        'assigned': 'Opened',
+        'reviewing': 'Checking',
+        'returned': 'Returned',
+        'revising': 'Polishing',
+        'published': 'Completed'
+    };
+
+    essays.forEach(essay => {
+        const displayStatus = teacherStatusMap[essay.status] || 'New';
+        const studentName = essay.profiles?.full_name || "Unknown Student";
+        
+        const cardHtml = `
+            <div class="reviewer-card" onclick="startReview('${essay.id}')">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <strong style="display:block; font-size:1.1rem;">${essay.title}</strong>
+                        <small>Student: ${studentName}</small>
+                    </div>
+                    <span class="status-pill">${displayStatus}</span>
+                </div>
+            </div>
+        `;
+
+        if (essay.status === 'returned' || essay.status === 'published') {
+            completedList.innerHTML += cardHtml;
+        } else {
+            pendingList.innerHTML += cardHtml;
+        }
     });
 }
 </script>
