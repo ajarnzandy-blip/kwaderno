@@ -478,7 +478,7 @@
         <input type="text" id="reg-user" placeholder="Username (Unique)">
         <input type="password" id="reg-pass" placeholder="Password">
         <input type="password" id="reg-confirm" placeholder="Confirm Password">
-        <button class="btn-auth" onclick="performSignup(true)">Create Account</button>
+        <button class="btn-auth" onclick="performSignup(false)">Create Account</button>
     </div>
 </section>
 
@@ -571,7 +571,7 @@
         <h2 style="color:var(--deep-green)">Professional Info</h2>
         <input type="text" id="rev-prof" placeholder="Profession (e.g. Teacher)">
         <input type="number" id="rev-exp" placeholder="Years of Experience">
-        <button class="btn-auth" onclick="completeRevSignup()">Join Kwaderno</button>
+        <button class="btn-auth" onclick="completeRevSignup(true)">Join Kwaderno</button>
     </div>
 </section>
 
@@ -719,53 +719,32 @@ function handleNavAction() {
 
 // --- 3. UPDATED SIGNUP (Handles the Role correctly) ---
 async function performSignup(isTeacher = false) {
-    const user = isTeacher 
-        ? document.getElementById('rev-reg-user').value 
-        : document.getElementById('reg-user').value;
+    // 1. Get Values
+    const user = isTeacher ? document.getElementById('rev-reg-user').value : document.getElementById('reg-user').value;
+    const pass = isTeacher ? document.getElementById('rev-reg-pass').value : document.getElementById('reg-pass').value;
+    const name = isTeacher ? document.getElementById('rev-reg-name').value : document.getElementById('reg-name').value;
 
-    const pass = isTeacher 
-        ? document.getElementById('rev-reg-pass').value 
-        : document.getElementById('reg-pass').value;
+    if (!user || !pass) return alert("Please fill in all fields.");
 
-    const name = isTeacher 
-        ? document.getElementById('rev-reg-name').value 
-        : document.getElementById('reg-name').value;
-
-    if (!user || !pass) {
-        alert("Username and Password are required!");
-        return;
-    }
-
-    // 1. SIGN UP
+    // 2. Sign Up to Supabase Auth
     const { data, error } = await supabaseClient.auth.signUp({
-        email: user + "@kwaderno.com",
-        password: pass
+        email: user + "@kwaderno.com", // Creating a fake email from username
+        password: pass,
+        options: {
+            data: {
+                full_name: name,
+                role: isTeacher ? 'teacher' : 'student',
+                username: user
+            }
+        }
     });
 
     if (error) {
         alert("Signup Error: " + error.message);
-        return;
+    } else {
+        alert("Account Created! You can now login.");
+        showPage(isTeacher ? 'reviewer-login' : 'login-page');
     }
-
-    const userId = data.user.id;
-
-    // 2. CREATE PROFILE (THIS WAS MISSING ❗)
-    const { error: profileError } = await supabaseClient
-        .from('profiles')
-        .insert([{
-            id: userId,
-            username: user,
-            full_name: name,
-            role: isTeacher ? 'teacher' : 'student'
-        }]);
-
-    if (profileError) {
-        alert("Profile Error: " + profileError.message);
-        return;
-    }
-
-    alert("Account created! Please log in.");
-    showPage(isTeacher ? 'reviewer-login' : 'login-page');
 }
 // Teacher-specific signup step 2
 function completeRevSignup() { performSignup(true); }
