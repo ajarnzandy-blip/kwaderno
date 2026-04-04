@@ -732,30 +732,27 @@ function handleNavAction() {
 // --- 3. AUTHENTICATION ---
 async function performSignup() {
     const username = document.getElementById('reg-user').value;
-    const email = username + "@kwaderno.com"; 
     const password = document.getElementById('reg-pass').value;
     const fullName = document.getElementById('reg-name').value;
 
-    if (!username || !password || !fullName) return alert("Please fill all fields");
-
     const { data, error } = await supabaseClient.auth.signUp({
-        email,
-        password,
+        email: username + "@kwaderno.com",
+        password: password,
         options: {
-            data: {
+            // This 'data' object is what the SQL trigger looks for!
+            data: { 
                 full_name: fullName,
-                username: username,
-                role: 'student'
+                role: 'student' 
             }
         }
     });
 
-    if (error) return alert("Signup Error: " + error.message);
-    
-    alert("Account created! You can now login.");
-    showPage('login-page');
+    if (error) alert(error.message);
+    else {
+        alert("Account created! Now try logging in.");
+        showPage('login-page');
+    }
 }
-
 async function performLogin() {
     const userIn = document.getElementById('login-user').value;
     const passIn = document.getElementById('login-pass').value;
