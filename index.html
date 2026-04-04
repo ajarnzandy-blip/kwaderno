@@ -706,24 +706,26 @@ let activeEssayId = null;
 // --- 2. NAVIGATION & UI ---
 function showPage(pageId) {
     console.log("Navigating to:", pageId);
+    
+    // Hide all pages, show target
     const target = document.getElementById(pageId);
     if (target) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         target.classList.add('active');
+        
+        // Handle navbar visibility
         const navBtn = document.getElementById('nav-btn');
         if (navBtn) navBtn.style.display = (pageId === 'home') ? 'none' : 'block';
         window.scrollTo(0, 0);
-// THEY GO RIGHT HERE, BEFORE THE FINAL CLOSING BRACE
+    }
+
+    // --- DASHBOARD TRIGGERS ---
     if (pageId === 'reviewer-dash') loadTeacherDashboard();
     if (pageId === 'writer-dash') fetchUserEssays();
-    if (pageId === 'read-page') loadPublishedLibrary();
-    }
+    
+    // THIS LINE TRIGGERS THE LIBRARY WHEN THEY CLICK THE READ PILLAR
+    if (pageId === 'read') loadPublishedLibrary(); 
 }
-function handleNavAction() {
-    if (!currentUser) return showPage('home');
-    showPage(currentUser.role === 'teacher' ? 'reviewer-dash' : 'writer-dash');
-}
-
 // --- 3. UPDATED SIGNUP (Handles the Role correctly) ---
 async function performSignup(isTeacher = false) {
     // 1. Determine which IDs to grab based on the role
@@ -1251,6 +1253,72 @@ async function loadPublishedLibrary() {
         `;
         container.innerHTML += card;
     });
+}
+// FETCH AND DISPLAY PUBLISHED ESSAYS
+async function loadPublishedLibrary() {
+    console.log("Fetching published essays for the library...");
+    
+    // Target your existing essay-list container
+    const listBody = document.getElementById('essay-list');
+    listBody.innerHTML = '<p style="text-align:center;">Loading polished works...</p>';
+
+    // Fetch published essays from Supabase
+    const { data: publishedEssays, error } = await supabaseClient
+        .from('essays')
+        .select('*')
+        .eq('status', 'published')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error("Library Error:", error);
+        listBody.innerHTML = '<p style="text-align:center; color:red;">Error loading essays.</p>';
+        return;
+    }
+
+    // Clear the loading text (and your hardcoded dummy essay)
+    listBody.innerHTML = ''; 
+
+    if (publishedEssays.length === 0) {
+        listBody.innerHTML = '<p style="text-align:center; color: var(--muted);">No published essays yet. Be the first to publish!</p>';
+        return;
+    }
+
+    // Create a card for each published essay
+    publishedEssays.forEach(essay => {
+        const publishDate = new Date(essay.created_at).toLocaleDateString('en-US', { 
+            year: 'numeric', month: 'long', day: 'numeric' 
+        });
+        
+        // We use your exact HTML structure from the Read page so the design matches perfectly
+        const card = `
+            <div class="essay-card">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h3 style="margin: 0 0 5px 0; color: var(--deep-green);">${essay.title}</h3>
+                        <span style="font-size: 0.8rem; color: var(--muted);">Published on <b>${publishDate}</b></span>
+                    </div>
+                    <div style="background: var(--paper); padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); font-size: 0.75rem; font-weight: 700; color: var(--deep-green);">
+                        👁️ Verified Work
+                    </div>
+                </div>
+                <div style="font-size: 0.9rem; color: #444; margin: 15px 0; max-height: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    ${essay.body.substring(0, 150)}...
+                </div>
+                <button class="btn-read-more" onclick="readFullEssay('${essay.id}')">Read Full Essay</button>
+            </div>
+        `;
+        listBody.innerHTML += card;
+    });
+}
+
+// WIRES UP YOUR HTML REFRESH BUTTON
+function refreshLibrary() {
+    loadPublishedLibrary();
+}
+
+// A PLACEHOLDER FOR THE "READ FULL ESSAY" BUTTON
+function readFullEssay(essayId) {
+    alert("Opening full essay ID: " + essayId + "\n(We will build this reading page next!)");
 }
 </script>
 </body>
