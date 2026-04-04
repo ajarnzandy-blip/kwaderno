@@ -559,19 +559,18 @@
 <section id="reviewer-signup" class="page">
     <div class="auth-container">
         <h2 style="color:var(--deep-green)">Editor Application</h2>
+        
         <input type="text" id="rev-reg-name" placeholder="Full Name">
-        <input type="text" id="rev-reg-user" placeholder="Username">
+        <input type="text" id="rev-reg-user" placeholder="Username (Unique)">
         <input type="password" id="rev-reg-pass" placeholder="Password">
-        <button class="btn-auth" onclick="showPage('reviewer-info')">Next Step</button>
-    </div>
-</section>
-
-<section id="reviewer-info" class="page">
-    <div class="auth-container">
-        <h2 style="color:var(--deep-green)">Professional Info</h2>
-        <input type="text" id="rev-prof" placeholder="Profession (e.g. Teacher)">
+        
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+        
+        <input type="text" id="rev-prof" placeholder="Profession (e.g. English Teacher)">
         <input type="number" id="rev-exp" placeholder="Years of Experience">
-        <button class="btn-auth" onclick="completeRevSignup(true)">Join Kwaderno</button>
+        
+        <button class="btn-auth" onclick="performSignup(true)">Join Kwaderno</button>
+        <p style="font-size:0.8rem; margin-top:10px;">Already an editor? <a href="#" onclick="showPage('reviewer-login')">Login</a></p>
     </div>
 </section>
 
@@ -719,30 +718,43 @@ function handleNavAction() {
 
 // --- 3. UPDATED SIGNUP (Handles the Role correctly) ---
 async function performSignup(isTeacher = false) {
-    // 1. Get Values
-    const user = isTeacher ? document.getElementById('rev-reg-user').value : document.getElementById('reg-user').value;
-    const pass = isTeacher ? document.getElementById('rev-reg-pass').value : document.getElementById('reg-pass').value;
-    const name = isTeacher ? document.getElementById('rev-reg-name').value : document.getElementById('reg-name').value;
+    // 1. Determine which IDs to grab based on the role
+    const nameId = isTeacher ? 'rev-reg-name' : 'reg-name';
+    const userId = isTeacher ? 'rev-reg-user' : 'reg-user';
+    const passId = isTeacher ? 'rev-reg-pass' : 'reg-pass';
 
-    if (!user || !pass) return alert("Please fill in all fields.");
+    const nameValue = document.getElementById(nameId).value;
+    const userValue = document.getElementById(userId).value;
+    const passValue = document.getElementById(passId).value;
 
-    // 2. Sign Up to Supabase Auth
+    // 2. Validation
+    if (!nameValue || !userValue || !passValue) {
+        return alert("Please fill in all required fields!");
+    }
+
+    // 3. Optional: Grab Reviewer-only data if applicable
+    let metadata = { 
+        full_name: nameValue, 
+        role: isTeacher ? 'teacher' : 'student',
+        username: userValue 
+    };
+
+    if (isTeacher) {
+        metadata.profession = document.getElementById('rev-prof').value;
+        metadata.experience = document.getElementById('rev-exp').value;
+    }
+
+    // 4. Supabase Auth Call
     const { data, error } = await supabaseClient.auth.signUp({
-        email: user + "@kwaderno.com", // Creating a fake email from username
-        password: pass,
-        options: {
-            data: {
-                full_name: name,
-                role: isTeacher ? 'teacher' : 'student',
-                username: user
-            }
-        }
+        email: userValue + "@kwaderno.com",
+        password: passValue,
+        options: { data: metadata }
     });
 
     if (error) {
         alert("Signup Error: " + error.message);
     } else {
-        alert("Account Created! You can now login.");
+        alert("Success! Account created for " + nameValue);
         showPage(isTeacher ? 'reviewer-login' : 'login-page');
     }
 }
