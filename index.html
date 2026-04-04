@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -195,10 +196,6 @@
     /* --- PAGE MANAGEMENT --- */
     .page { display: none; min-height: auto; padding: 40px 20px; }
     .page.active { display: block; }
-/* Auth & Dashboard Styles */
-.auth-container { max-width: 400px; margin: 2rem auto; padding: 2rem; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-.auth-container input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; }
-.btn-auth { width: 100%; padding: 12px; background: var(--deep-green); color: white; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; margin-top: 10px; }
 
 /* Dashboard */
 .dash-card { background: white; padding: 30px; border-radius: 15px; max-width: 600px; margin: 2rem auto; text-align: center; }
@@ -247,12 +244,6 @@
     outline: none;
     font-family: 'serif'; /* More formal feel */
 }
-/* Dashboard Table & Layout */
-.dash-container { max-width: 900px; margin: 2rem auto; padding: 20px; }
-.user-info { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-.stats-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
-.side-panel { background: white; padding: 20px; border-radius: 12px; height: fit-content; }
-.main-panel { background: white; padding: 20px; border-radius: 12px; }
 
 .essay-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9rem; }
 .essay-table th { text-align: left; padding: 12px; border-bottom: 2px solid var(--border); color: var(--muted); }
@@ -1369,8 +1360,117 @@ function handleNavAction() {
     // Simply take the user back to the home page
     showPage('home');
 }
+async function refreshLibrary() {
+    const listContainer = document.getElementById('essay-list');
+    listContainer.innerHTML = '<p style="text-align:center;">Loading the library...</p>';
+
+    // Fetch from Supabase (assuming 'status' is 'published')
+    const { data, error } = await supabase
+        .from('essays')
+        .select('*')
+        .eq('status', 'published')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching essays:', error);
+        listContainer.innerHTML = '<p>Failed to load essays. Check console.</p>';
+        return;
+    }
+
+    // Clear and build the list
+    listContainer.innerHTML = ''; 
+    data.forEach(essay => {
+        const card = `
+            <div class="essay-card">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h3 style="margin: 0 0 5px 0; color: var(--deep-green);">${essay.title}</h3>
+                        <span style="font-size: 0.8rem; color: var(--muted);">By <b>${essay.author_name}</b> • ${new Date(essay.created_at).toLocaleDateString()}</span>
+                    </div>
+                </div>
+                <p style="font-size: 0.9rem; color: #444; margin: 15px 0;">${essay.content.substring(0, 150)}...</p>
+                <button class="btn-read-more" onclick="viewFullEssay('${essay.id}')">Read Full Essay</button>
+            </div>
+        `;
+        listContainer.insertAdjacentHTML('beforeend', card);
+    });
+}
+function applyMark(command, value = null) {
+    // Focus the editor before applying the style
+    const editor = document.getElementById('teacher-correction-content');
+    editor.focus();
+
+    if (command === 'foreColor') {
+        // This handles the "Green" insertion
+        document.execCommand(command, false, value);
+    } else if (command === 'strikeThrough') {
+        // This handles the "Red" strike
+        document.execCommand(command, false, null);
+    } else if (command === 'hiliteColor') {
+        // This handles the "Yellow" note
+        document.execCommand(command, false, value);
+    }
+}
+</script>
+<script>
+// --- NAVIGATION LOGIC ---
+function showPage(pageId) {
+    // Hide all pages
+    const pages = document.querySelectorAll('.page');
+    pages.forEach(p => p.classList.remove('active'));
+    
+    // Show the requested page
+    const target = document.getElementById(pageId);
+    if (target) {
+        target.classList.add('active');
+        // Handle the "Back" button visibility
+        const navBtn = document.getElementById('nav-btn');
+        navBtn.style.display = (pageId === 'home') ? 'none' : 'block';
+        window.scrollTo(0, 0);
+    }
+}
+
+function handleNavAction() {
+    showPage('home');
+}
+
+// --- EDITOR LOGIC ---
+function updateFontStyle() {
+    const font = document.getElementById('font-style').value;
+    const body = document.getElementById('essay-body');
+    if (font === 'cursive') {
+        body.classList.add('cursive-font');
+    } else {
+        body.classList.remove('cursive-font');
+    }
+}
+
+function updateStats() {
+    const text = document.getElementById('essay-body').value.trim();
+    const words = text ? text.split(/\s+/).length : 0;
+    document.getElementById('word-num').innerText = words;
+}
+
+// --- PLACEHOLDER ACTIONS (To prevent errors) ---
+function performLogin() {
+    alert("Login successful! (Simulated)");
+    showPage('writer-dash');
+}
+
+function submitEssay() {
+    const title = document.getElementById('essay-title').value;
+    if(!title) return alert("Please enter a title!");
+    alert("Essay '" + title + "' submitted to your teacher!");
+    showPage('writer-dash');
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    showPage('home');
+});
 </script>
 </body>
 </html>
+
 
 
