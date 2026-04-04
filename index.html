@@ -438,10 +438,12 @@
       <div style="display: flex; align-items: center; gap: 10px;">
         <span style="font-size: 0.85rem; font-weight: 600; color: var(--muted);">Sort by:</span>
         <select onchange="sortEssays(this.value)" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: white; cursor: pointer;">
-          <option value="newest">Newest First</option>
-          <option value="oldest">Oldest First</option>
-          <option value="views">Most Viewed</option>
-            <button onclick="refreshLibrary()" style="padding: 8px; border: 1px solid var(--border); border-radius: 8px; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Refresh Library">
+  <option value="newest">Newest First</option>
+  <option value="oldest">Oldest First</option>
+  <option value="views">Most Viewed</option>
+</select>
+
+<button onclick="refreshLibrary()" style="padding: 8px; border: 1px solid var(--border); border-radius: 8px; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Refresh Library">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--deep-green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M23 4v6h-6"></path>
         <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
@@ -476,7 +478,7 @@
         <input type="text" id="reg-user" placeholder="Username (Unique)">
         <input type="password" id="reg-pass" placeholder="Password">
         <input type="password" id="reg-confirm" placeholder="Confirm Password">
-        <button class="btn-auth" onclick="performSignup()">Create Account</button>
+        <button class="btn-auth" onclick="performSignup(true)">Create Account</button>
     </div>
 </section>
 
@@ -607,9 +609,11 @@
     <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
 
     <h4 style="color:var(--muted);">Completed Reviews</h4>
-    <div id="completed-list"></div>
-</div>
-</section>
+   <div id="completed-list"></div>
+            </div> <!-- closes main-panel -->
+        </div> <!-- closes stats-grid -->
+    </div> <!-- closes dash-container -->
+</section> <!-- closes reviewer-dash ✅ -->
 
 <section id="review-editor" class="page" style="background:#f0f2f1;">
     <div class="dash-container" style="max-width: 1200px;">
@@ -635,7 +639,10 @@
     
     <textarea id="teacher-comments" class="teacher-notes" placeholder="General comments for the student..."></textarea>
     <button class="btn-auth" onclick="saveReview()">FINISH & RETURN TO STUDENT</button>
-</div>
+        </div> <!-- closes correction column -->
+        </div> <!-- closes review-split -->
+    </div> <!-- closes dash-container -->
+</section> <!-- closes review-editor ✅ -->
 <div id="settings-modal" class="page" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; display:none; padding:20px;">
     <div class="auth-container" style="margin-top: 100px;">
         <h2 style="color:var(--deep-green)">Account Settings</h2>
@@ -684,173 +691,229 @@
 
 <script>
 // --- 1. INITIALIZATION ---
-// Ensure the library is loaded before calling createClient
 const SUPABASE_URL = 'https://greripiiyckkfowmgvoi.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyZXJpcGlpeWNra2Zvd21ndm9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzUxOTksImV4cCI6MjA5MDY1MTE5OX0.PWEnmh2kZ7D_QQTjaJh_wHhm_n1fX79m0p4XqA325ho';
 
-// Standard Supabase initialization
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
 let activeEssayId = null;
 
-// --- 2. NAVIGATION ---
+// --- 2. NAVIGATION & UI ---
 function showPage(pageId) {
-    console.log("Attempting to show page:", pageId);
-    
+    console.log("Navigating to:", pageId);
     const target = document.getElementById(pageId);
-    
     if (target) {
-        // 1. Hide all pages
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        
-        // 2. Show the specific page
         target.classList.add('active');
-        
-        // 3. Handle the Back Button visibility
         const navBtn = document.getElementById('nav-btn');
-        if (navBtn) {
-            navBtn.style.display = (pageId === 'home') ? 'none' : 'block';
-        }
-        
-        // 4. Scroll to top so the user sees the start of the new page
+        if (navBtn) navBtn.style.display = (pageId === 'home') ? 'none' : 'block';
         window.scrollTo(0, 0);
-    } else {
-        console.error(`CRITICAL: The section with ID "${pageId}" does not exist in your HTML.`);
     }
 }
 
-// Global back button logic
 function handleNavAction() {
-    if (currentUser) {
-        showPage(currentUser.role === 'teacher' ? 'reviewer-dash' : 'writer-dash');
-    } else {
-        showPage('home');
-    }
+    if (!currentUser) return showPage('home');
+    showPage(currentUser.role === 'teacher' ? 'reviewer-dash' : 'writer-dash');
 }
 
-// --- 3. AUTHENTICATION ---
-async function performSignup() {
-    const username = document.getElementById('reg-user').value;
-    const password = document.getElementById('reg-pass').value;
-    const fullName = document.getElementById('reg-name').value;
+// --- 3. UPDATED SIGNUP (Handles the Role correctly) ---
+async function performSignup(isTeacher = false) {
+    const user = isTeacher ? document.getElementById('rev-reg-user').value : document.getElementById('reg-user').value;
+    const pass = isTeacher ? document.getElementById('reg-pass').value : document.getElementById('reg-pass').value;
+    const name = isTeacher ? document.getElementById('rev-reg-name').value : document.getElementById('reg-name').value;
+    
+    // Safety check for empty fields
+    if (!user || !pass) return alert("Username and Password are required!");
 
-    const { data, error } = await supabaseClient.auth.signUp({
-        email: username + "@kwaderno.com",
-        password: password,
-        options: {
-            // This 'data' object is what the SQL trigger looks for!
+    const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+        email: user + "@kwaderno.com",
+        password: pass,
+        options: { 
             data: { 
-                full_name: fullName,
-                role: 'student' 
-            }
+                full_name: name, 
+                role: isTeacher ? 'teacher' : 'student',
+                username: user
+            } 
         }
     });
 
-    if (error) alert(error.message);
-    else {
-        alert("Account created! Now try logging in.");
-        showPage('login-page');
-    }
+    if (authError) return alert("Signup Error: " + authError.message);
+    
+    alert("Account created successfully! Please log in.");
+    showPage(isTeacher ? 'reviewer-login' : 'login-page');
 }
-async function performLogin() {
-    const userIn = document.getElementById('login-user').value;
-    const passIn = document.getElementById('login-pass').value;
-    const email = userIn + "@kwaderno.com";
 
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email: email,
+// Teacher-specific signup step 2
+function completeRevSignup() { performSignup(true); }
+
+// --- 4. UPDATED LOGIN (Fixes the ReferenceError) ---
+async function performLogin(isTeacher = false) {
+    const userIn = isTeacher ? document.getElementById('rev-user-in').value : document.getElementById('login-user').value;
+    const passIn = isTeacher ? document.getElementById('rev-pass-in').value : document.getElementById('login-pass').value;
+
+    const { data: authResult, error: authError } = await supabaseClient.auth.signInWithPassword({
+        email: userIn + "@kwaderno.com",
         password: passIn
     });
 
-    if (error) return alert("Login failed: " + error.message);
+    if (authError) return alert("Login Error: " + authError.message);
 
-    // Get the profile data we created during signup
+    // Fetch the profile to confirm role
     const { data: profile, error: profError } = await supabaseClient
         .from('profiles')
         .select('*')
-        .eq('id', data.user.id)
-        .single();
+        .eq('id', authResult.user.id)
+        .maybeSingle();
 
-    if (profError) return alert("Profile error: " + profError.message);
+    if (!profile) return alert("Profile not found. Contact support.");
 
-    currentUser = { ...data.user, ...profile };
-    
-    document.getElementById('welcome-msg').innerText = `Welcome, ${profile.full_name}`;
-    loadUserEssays();
-    showPage('writer-dash');
-}
+    currentUser = { ...authResult.user, ...profile };
 
-// --- 4. ESSAY MANAGEMENT ---
-async function submitEssay() {
-    const title = document.getElementById('essay-title').value;
-    const body = document.getElementById('essay-body').value;
-
-    if (!title || !body) return alert("Don't leave the page blank!");
-
-    const { error } = await supabaseClient.from('essays').insert([
-        { 
-            student_id: currentUser.id, 
-            title: title, 
-            body: body, 
-            status: 'submitted' 
-        }
-    ]);
-
-    if (error) {
-        alert("Submission failed: " + error.message);
+    // ROUTING LOGIC
+    if (profile.role === 'teacher') {
+        document.getElementById('rev-welcome').innerText = `Hello, Editor ${profile.full_name}`;
+        loadTeacherDashboard();
+        showPage('reviewer-dash');
     } else {
-        alert("Essay submitted successfully!");
-        document.getElementById('essay-title').value = "";
-        document.getElementById('essay-body').value = "";
+        document.getElementById('welcome-msg').innerText = `Welcome, ${profile.full_name}`;
         loadUserEssays();
         showPage('writer-dash');
     }
 }
+function performRevLogin() { performLogin(true); }
 
-async function loadUserEssays() {
-    const { data, error } = await supabaseClient
-        .from('essays')
-        .select('*')
-        .eq('student_id', currentUser.id)
-        .order('created_at', { ascending: false });
+// --- 4. WRITER LOGIC ---
+async function submitEssay() {
+    const title = document.getElementById('essay-title').value;
+    const body = document.getElementById('essay-body').value;
 
-    const list = document.getElementById('user-essay-list');
-    if (!list) return;
-    
-    list.innerHTML = "";
-    if (data) {
-        data.forEach(essay => {
-            list.innerHTML += `
-                <tr>
-                    <td>${essay.title}</td>
-                    <td>${new Date(essay.created_at).toLocaleDateString()}</td>
-                    <td><span class="status-pill status-${essay.status}">${essay.status.toUpperCase()}</span></td>
-                </tr>`;
-        });
+    const { error } = await supabaseClient.from('essays').insert([{
+        student_id: currentUser.id,
+        title: title,
+        body: body,
+        status: 'submitted'
+    }]);
+
+    if (error) alert(error.message);
+    else {
+        alert("Essay submitted for review!");
+        showPage('writer-dash');
+        loadUserEssays();
     }
 }
 
-// Editor Utilities
+async function loadUserEssays() {
+    const { data } = await supabaseClient.from('essays').select('*').eq('student_id', currentUser.id).order('created_at', { ascending: false });
+    const list = document.getElementById('user-essay-list');
+    list.innerHTML = data.map(e => `
+        <tr onclick="viewFeedback('${e.id}')" style="cursor:pointer">
+            <td>${e.title}</td>
+            <td>${new Date(e.created_at).toLocaleDateString()}</td>
+            <td><span class="status-pill status-${e.status}">${e.status.toUpperCase()}</span></td>
+        </tr>
+    `).join('');
+}
+
+// --- 5. REVIEWER LOGIC ---
+async function loadTeacherDashboard() {
+    const { data: pending } = await supabaseClient.from('essays').select('*, profiles(full_name)').eq('status', 'submitted');
+    const { data: finished } = await supabaseClient.from('essays').select('*').eq('teacher_id', currentUser.id).eq('status', 'reviewed');
+
+    document.getElementById('finish-count').innerText = finished.length;
+    
+    document.getElementById('assigned-list').innerHTML = pending.map(e => `
+        <div class="reviewer-card" onclick="openReviewEditor('${e.id}')" style="cursor:pointer">
+            <b>${e.title}</b><br>
+            <small>From: ${e.profiles?.full_name || 'Student'}</small>
+        </div>
+    `).join('');
+}
+
+async function openReviewEditor(id) {
+    const { data } = await supabaseClient.from('essays').select('*').eq('id', id).single();
+    activeEssayId = id;
+    document.getElementById('editing-title').innerText = `Reviewing: ${data.title}`;
+    document.getElementById('student-original-content').innerText = data.body;
+    document.getElementById('teacher-correction-content').innerHTML = data.body; // Start with original
+    showPage('review-editor');
+}
+
+async function saveReview() {
+    const correction = document.getElementById('teacher-correction-content').innerHTML;
+    const notes = document.getElementById('teacher-comments').value;
+
+    const { error } = await supabaseClient.from('essays').update({
+        correction_body: correction,
+        teacher_notes: notes,
+        status: 'reviewed',
+        teacher_id: currentUser.id
+    }).eq('id', activeEssayId);
+
+    if (error) alert(error.message);
+    else {
+        alert("Review returned to student!");
+        loadTeacherDashboard();
+        showPage('reviewer-dash');
+    }
+}
+
+// --- 6. FEEDBACK VIEW (FOR STUDENT) ---
+async function viewFeedback(id) {
+    const { data } = await supabaseClient.from('essays').select('*').eq('id', id).single();
+    if (data.status !== 'reviewed') return alert("This essay is still being reviewed.");
+
+    document.getElementById('view-essay-title').innerText = data.title;
+    document.getElementById('view-teacher-note').innerText = data.teacher_notes || "No specific notes provided.";
+    document.getElementById('view-corrected-content').innerHTML = data.correction_body;
+    document.getElementById('feedback-modal').style.display = 'block';
+}
+
+function closeFeedback() { document.getElementById('feedback-modal').style.display = 'none'; }
+
+// --- 7. UTILITIES ---
+function applyMark(cmd, val = null) { document.execCommand(cmd, false, val); }
 function updateStats() {
     const text = document.getElementById('essay-body').value;
-    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-    document.getElementById('word-num').innerText = words;
+    document.getElementById('word-num').innerText = text.trim() ? text.trim().split(/\s+/).length : 0;
 }
-
 function updateFontStyle() {
     const style = document.getElementById('font-style').value;
-    const body = document.getElementById('essay-body');
-    body.style.fontFamily = (style === 'cursive') ? "'Dancing Script', cursive" : "serif";
+    document.getElementById('essay-body').classList.toggle('cursive-font', style === 'cursive');
+}
+function logout() { currentUser = null; showPage('home'); }
+function handleSearch(query) {
+    document.querySelectorAll('.essay-card').forEach(card => {
+        card.style.display = card.innerText.toLowerCase().includes(query.toLowerCase()) ? '' : 'none';
+    });
 }
 
-// Initialize
-window.onload = () => {
-    showPage('home');
-};
+function sortEssays(val) { console.log("Sort by:", val); }
+function refreshLibrary() { location.reload(); }
+
+function openSettings() {
+    document.getElementById('settings-user-display').innerText = 'Logged in as: ' + (currentUser?.username || currentUser?.email || 'Unknown');
+    document.getElementById('settings-modal').style.display = 'block';
+}
+function closeSettings() {
+    document.getElementById('settings-modal').style.display = 'none';
+}
+function updatePassword() { alert('Password update coming soon.'); }
+
+function publishResource() {
+    const title = document.getElementById('new-link-title').value;
+    const url = document.getElementById('new-link-url').value;
+    if (!title || !url) return alert('Please fill in both fields.');
+    alert('Resource "' + title + '" posted!');
+}
+
+function toggleAvail() {
+    const checked = document.getElementById('rev-avail').checked;
+    console.log('Teacher availability:', checked);
+}
+window.onload = () => showPage('home');
 </script>
 </body>
 </html>
-
 
 
