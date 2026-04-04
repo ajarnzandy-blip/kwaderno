@@ -683,245 +683,176 @@
 </footer>
 
 <script>
-<script>
-// --- 1. SUPABASE CONFIGURATION ---
-const SUPABASE_URL = 'https://greripiiyckkfowmgvoi.supabase.co'; 
+// --- 1. INITIALIZATION ---
+const SUPABASE_URL = 'https://greripiiyckkfowmgvoi.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyZXJpcGlpeWNra2Zvd21ndm9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzUxOTksImV4cCI6MjA5MDY1MTE5OX0.PWEnmh2kZ7D_QQTjaJh_wHhm_n1fX79m0p4XqA325ho';
 
-// We will use 'supabase' as the name to stay consistent with standard tutorials
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// --- 2. GLOBAL STATE (Declared ONLY ONCE here) ---
-let currentUser = null; 
-let currentRev = null;
-let activeEssayId = null; 
-let allEssays = []; 
-let currentPage = 'home';
-let reviewers = [];
-let publishedEssays = [];
-let mockEssays = [];
+let currentUser = null;
+let activeEssayId = null;
 
-var globalResources = [
-    { title: "Purdue OWL – General Writing", url: "https://owl.purdue.edu/" },
-    { title: "Oxford – Top 10 Writing Tips", url: "https://oxford.com" }
-];
-
-// --- 3. UI NAVIGATION ---
+// --- 2. NAVIGATION & UI ---
 function showPage(pageId) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     const target = document.getElementById(pageId);
-    if (target) {
-        target.classList.add('active');
-        currentPage = pageId;
-    }
-
+    if (target) target.classList.add('active');
+    
+    // Toggle Nav Button
     const navBtn = document.getElementById('nav-btn');
-    if (pageId === 'home') {
-        navBtn.style.display = 'none';
-    } else {
-        navBtn.style.display = 'block';
-    }
+    navBtn.style.display = (pageId === 'home') ? 'none' : 'block';
 }
 
 function handleNavAction() {
-    // If we are in the editor or dashboard, go back to home
-    showPage('home');
-}
-
-// Ensure the page starts correctly
-window.onload = () => showPage('home');
-
-// --- 3. AUTHENTICATION ---
-async function performSignup() {
-    const fullName = document.getElementById('reg-name').value;
-    const username = document.getElementById('reg-user').value;
-    const password = document.getElementById('reg-pass').value;
-
-    if (!fullName || !username || !password) return alert("Please fill all fields.");
-
-    // 1. Create the User in Supabase Auth
-    // We use username + "@kwaderno.com" as a fake email since Supabase requires emails
-    const { data, error } = await supabaseClient.auth.signUp({
-        email: `${username}@kwaderno.com`,
-        password: password,
-    });
-
-    if (error) return alert("Signup Error: " + error.message);
-
-    if (data.user) {
-        // 2. Save the extra info (Name & Role) into our 'profiles' table
-        const { error: profileError } = await supabase
-            .from('profiles')
-            .insert([
-                { 
-                    id: data.user.id, 
-                    full_name: fullName, 
-                    username: username, 
-                    role: 'student' 
-                }
-            ]);
-
-        if (profileError) return alert("Profile Error: " + profileError.message);
-
-        alert("Account created! You can now log in.");
-        showPage('login-page');
+    if (currentUser) {
+        showPage(currentUser.role === 'teacher' ? 'reviewer-dash' : 'writer-dash');
+    } else {
+        showPage('home');
     }
 }
+
+// --- 3. AUTHENTICATION LOGIC ---
+async function performSignup() {
+    const email = document.getElementById('reg-user').value + "@kwaderno.com"; // Pseudo-email for simplicity
+    const password = document.getElementById('reg-pass').value;
+    const fullName = document.getElementById('reg-name').value;
+
+    const { data, error } = await supabaseClient.auth.signUp({ email, password });
+
+    if (error) return alert(error.message);
+
+    // Create Profile entry
+    await supabaseClient.from('profiles').insert([
+        { id: data.user.id, full_name: fullName, role: 'student' }
+    ]);
+
+    alert("Account created! Please login.");
+    showPage('login-page');
+}
+
 async function performLogin() {
-    const username = document.getElementById('login-user').value;
+    const email = document.getElementById('login-user').value + "@kwaderno.com";
     const password = document.getElementById('login-pass').value;
 
-    // 1. Sign in to Supabase Auth
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email: `${username}@kwaderno.com`,
-        password: password,
-    });
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    
+    if (error) return alert("Login failed: " + error.message);
 
-    if (error) return alert("Login Failed: " + error.message);
-
-    if (data.user) {
-        // 2. Fetch the user's profile info from our table
-        const { data: profile, error: pError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', data.user.id)
-            .single();
-
-        if (profile) {
-            currentUser = profile;
-            document.getElementById('welcome-msg').innerText = `Welcome, ${profile.full_name}`;
-            
-            // 3. Load their essays (we'll write this function next!)
-            // fetchUserEssays(); 
-            
-            showPage('writer-dash');
-        }
-    }
+    // Fetch Profile
+    const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', data.user.id).single();
+    
+    currentUser = { ...data.user, ...profile };
+    document.getElementById('welcome-msg').innerText = `Welcome, ${profile.full_name}`;
+    
+    loadUserEssays();
+    showPage('writer-dash');
 }
 
-function performRevLogin() {
-    const user = document.getElementById('rev-user-in').value;
-    const found = reviewers.find(r => r.user === user);
-    if(found) {
-        currentRev = found;
-        showPage('reviewer-dash');
-    } else {
-        alert("Teacher not found. Use 'Teacher_A' or sign up.");
-    }
-}
-
-function completeRevSignup() {
-    const user = document.getElementById('rev-reg-user').value;
-    if(!user) return alert("Username required.");
-    currentRev = {user, available: true, finished: 0};
-    reviewers.push(currentRev);
-    showPage('reviewer-dash');
-}
-
-function logout() {
-    currentUser = null;
-    currentRev = null;
-    showPage('home');
-}
-
-// --- 4. ESSAY & REVIEW LOOP ---
+// --- 4. WRITER LOGIC ---
 async function submitEssay() {
     const title = document.getElementById('essay-title').value;
     const body = document.getElementById('essay-body').value;
 
-    if (!title || !body) {
-        return alert("Your notebook is empty!");
-    }
+    if(!title || !body) return alert("Please fill in both title and content.");
 
-    const { error } = await supabaseClient
+    const { error } = await supabaseClient.from('essays').insert([
+        { 
+            student_id: currentUser.id, 
+            title: title, 
+            body: body, 
+            status: 'submitted' 
+        }
+    ]);
+
+    if (error) alert(error.message);
+    else {
+        alert("Essay submitted for review!");
+        loadUserEssays();
+        showPage('writer-dash');
+    }
+}
+
+async function loadUserEssays() {
+    const { data, error } = await supabaseClient
         .from('essays')
-        .insert([
-            {
-                title: title,
-                body: body,
-                author_id: currentUser.id,
-                status: 'submitted'
-            }
-        ]);
+        .select('*')
+        .eq('student_id', currentUser.id);
 
-    if (error) {
-        return alert("Error: " + error.message);
-    }
-
-    alert("Essay submitted!");
-    showPage('writer-dash');
-}
-
-function renderWriterDash() {
-    if (!currentUser) return;
-    
-    document.getElementById('welcome-msg').innerText = "Welcome, " + currentUser.name;
     const list = document.getElementById('user-essay-list');
-    
-    // FORGIVING FILTER: 
-    // Look for essays where the ID matches OR the Author Name matches
-    const mySubmissions = allEssays.filter(e => 
-        e.authorId === currentUser.id || 
-        e.author === currentUser.name
-    );
-    
-    const myPublished = publishedEssays.filter(e => e.authorId === currentUser.id);
-    const totalList = [...mySubmissions, ...myPublished];
+    list.innerHTML = "";
 
-    // ... (rest of your table rendering code)
-}
-function renderReviewerDash() {
-    document.getElementById('rev-welcome').innerText = "Hello, " + currentRev.name;
-    
-    const pendingList = document.getElementById('assigned-list');
-    const completedList = document.getElementById('completed-list');
-    
-    // 1. Get Pending
-    const myQueue = allEssays.filter(e => e.assignedTo === currentRev.user && e.status !== 'Published');
-    
-    // 2. Get Completed
-    const myHistory = publishedEssays.filter(e => {
-        if (currentRev.user === 'elaine.dizon' && e.authorId === 'stu_1') return true;
-        if (currentRev.user === 'victor.salazar' && e.authorId === 'stu_2') return true;
-        if (currentRev.user === 'patricia.romero' && e.authorId === 'stu_3') return true;
-        if (currentRev.user === 'jonathan.alindogan' && e.authorId === 'stu_4') return true;
-        if (currentRev.user === 'sofia.mendoza' && e.authorId === 'stu_5') return true;
-        return false;
+    data.forEach(essay => {
+        const row = `<tr>
+            <td>${essay.title}</td>
+            <td>${new Date(essay.created_at).toLocaleDateString()}</td>
+            <td><span class="status-pill status-${essay.status}">${essay.status}</span></td>
+            <td>${essay.status === 'reviewed' ? `<button onclick="viewFeedback('${essay.id}')">View</button>` : ''}</td>
+        </tr>`;
+        list.innerHTML += row;
     });
-
-    // Render Pending
-    pendingList.innerHTML = myQueue.length === 0 
-        ? "<p style='color:gray; font-size:0.9rem;'>No pending assignments.</p>" 
-        : myQueue.map(e => `
-            <div class="reviewer-card">
-                <b>${e.title}</b><br>
-                <small>Author: ${e.author}</small>
-                <button onclick="startReview(${e.id})" style="float:right; background:var(--deep-green); color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Review</button>
-            </div>
-        `).join('');
-
-    // --- FIXED COMPLETED LIST LOGIC ---
-    let historyHtml = "";
-    if (myHistory.length === 0) {
-        historyHtml = "<p style='color:gray; font-size:0.9rem;'>No completed reviews yet.</p>";
-    } else {
-        myHistory.forEach(e => {
-            const displayId = e.authorId.replace('stu_', '@');
-            historyHtml += `
-                <div class="reviewer-card" onclick="openViewModal(${e.id}, true)" style="border-left-color: #ccc; display: flex; justify-content: space-between; align-items: center; cursor:pointer; margin-bottom:10px; padding:15px; background:white; border-radius:8px; border-left:5px solid #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                    <div>
-                        <b style="color:var(--deep-green); display:block;">${e.title}</b>
-                        <small style="color:var(--muted);">Author: ${displayId}</small>
-                    </div>
-                    <div style="text-align: right;">
-                        <span style="font-size: 0.7rem; font-weight: bold; color: var(--deep-green); display: block; text-transform:uppercase;">Returned</span>
-                        <small style="color: var(--muted);">${e.date}</small>
-                    </div>
-                </div>`;
-        });
-    }
-    completedList.innerHTML = historyHtml;
 }
+
+// --- 5. REVIEWER LOGIC ---
+async function loadPendingEssays() {
+    const { data } = await supabaseClient.from('essays').select('*, profiles(full_name)').eq('status', 'submitted');
+    const container = document.getElementById('assigned-list');
+    container.innerHTML = "";
+
+    data.forEach(essay => {
+        container.innerHTML += `
+            <div class="reviewer-card">
+                <b>${essay.title}</b> by ${essay.profiles.full_name}
+                <button onclick="openReviewEditor('${essay.id}')" style="float:right">Review</button>
+            </div>`;
+    });
+}
+
+async function openReviewEditor(id) {
+    activeEssayId = id;
+    const { data } = await supabaseClient.from('essays').select('*').eq('id', id).single();
+    
+    document.getElementById('editing-title').innerText = `Editing: ${data.title}`;
+    document.getElementById('student-original-content').innerText = data.body;
+    document.getElementById('teacher-correction-content').innerHTML = data.body; // Start with original
+    showPage('review-editor');
+}
+
+async function saveReview() {
+    const correction = document.getElementById('teacher-correction-content').innerHTML;
+    const notes = document.getElementById('teacher-comments').value;
+
+    const { error } = await supabaseClient.from('essays').update({
+        correction_body: correction,
+        teacher_notes: notes,
+        status: 'reviewed',
+        teacher_id: currentUser.id
+    }).eq('id', activeEssayId);
+
+    if(error) alert(error.message);
+    else {
+        alert("Review Sent!");
+        loadPendingEssays();
+        showPage('reviewer-dash');
+    }
+}
+
+// --- 6. UTILS ---
+function applyMark(command, value = null) {
+    document.execCommand(command, false, value);
+}
+
+function updateStats() {
+    const text = document.getElementById('essay-body').value;
+    const count = text.trim() ? text.trim().split(/\s+/).length : 0;
+    document.getElementById('word-num').innerText = count;
+}
+
+function updateFontStyle() {
+    const style = document.getElementById('font-style').value;
+    const body = document.getElementById('essay-body');
+    body.className = (style === 'cursive') ? 'notebook-body cursive-font' : 'notebook-body';
+}
+
 // --- 5. THE DIGITAL RED PEN ---
 function applyMark(command, value = null) {
     document.execCommand(command, false, value);
