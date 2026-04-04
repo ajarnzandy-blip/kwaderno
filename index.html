@@ -740,14 +740,12 @@ function showPage(pageId) {
 }
 // --- 3. UPDATED SIGNUP (Handles the Role correctly) ---
 async function performSignup(isTeacher) {
-    // 1. Grab the correct input fields based on whether it's a student or teacher
     const prefix = isTeacher ? 'rev-' : '';
     
     const name = document.getElementById(`${prefix}reg-name`).value.trim();
     const username = document.getElementById(`${prefix}reg-user`).value.trim();
     const password = document.getElementById(`${prefix}reg-pass`).value;
     
-    // 2. Validate passwords match (Only students have the confirm field in your HTML)
     if (!isTeacher) {
         const confirmPass = document.getElementById('reg-confirm').value;
         if (password !== confirmPass) {
@@ -757,48 +755,54 @@ async function performSignup(isTeacher) {
     }
 
     if (!name || !username || !password) {
-        alert("Please fill in all fields.");
+        alert("Please fill in all required fields.");
         return;
     }
 
-    // 3. THE TRICK: Turn the username into a fake email for Supabase
     const fakeEmail = `${username.toLowerCase().replace(/\s+/g, '')}@kwaderno.app`;
-
     console.log("Attempting to sign up:", fakeEmail);
 
-    // 4. Send it to Supabase
+    // Build the metadata object based on the user type
+    let userMetadata = {
+        full_name: name,
+        username: username,
+        role: isTeacher ? 'reviewer' : 'student'
+    };
+
+    // If it's a teacher, grab the extra fields!
+    if (isTeacher) {
+        userMetadata.profession = document.getElementById('rev-prof').value.trim();
+        userMetadata.experience = document.getElementById('rev-exp').value.trim();
+    }
+
     const { data, error } = await supabaseClient.auth.signUp({
         email: fakeEmail,
         password: password,
-        options: {
-            data: {
-                full_name: name,
-                username: username,
-                role: isTeacher ? 'reviewer' : 'student'
-            }
-        }
+        options: { data: userMetadata }
     });
 
     if (error) {
         console.error("Signup Error:", error);
-        alert("Signup Failed: " + error.message);
+        alert("Signup Failed: " + error.message + "\n(Check your Supabase database triggers if this persists!)");
         return;
     }
 
-    // 5. Success! Clear fields and send them to the correct login page
     alert("Account created successfully! You can now log in.");
     
+    // Clear fields
     document.getElementById(`${prefix}reg-name`).value = '';
     document.getElementById(`${prefix}reg-user`).value = '';
     document.getElementById(`${prefix}reg-pass`).value = '';
     if (!isTeacher) document.getElementById('reg-confirm').value = '';
+    if (isTeacher) {
+        document.getElementById('rev-prof').value = '';
+        document.getElementById('rev-exp').value = '';
+    }
 
     showPage(isTeacher ? 'reviewer-login' : 'login-page');
 }
 function performRevLogin() { performLogin(true); }
-// Add this inside the logic that shows the teacher dashboard
-if (pageId === 'reviewer-dash') {
-    loadTeacherDashboard();
+
 }
 
 // --- 4. WRITER LOGIC ---
@@ -1336,6 +1340,11 @@ async function readFullEssay(essayId) {
 // CLOSE THE READING MODAL
 function closeReadModal() {
     document.getElementById('read-modal').style.display = 'none';
+}
+// Handles the "Back" button in the top right corner
+function handleNavAction() {
+    // Simply take the user back to the home page
+    showPage('home');
 }
 </script>
 </body>
