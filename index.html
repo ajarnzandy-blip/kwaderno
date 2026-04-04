@@ -1038,20 +1038,26 @@ async function fetchUserEssays() {
         .eq('student_id', currentUser.id)
         .order('created_at', { ascending: false });
 
+    if (error) {
+        console.error("Error fetching essays:", error);
+        return;
+    }
+
     const listBody = document.getElementById('user-essay-list');
     listBody.innerHTML = ''; 
 
-    // This maps the DB value to what the Student sees
     const studentStatusMap = {
-    'assigned': 'Assigned',
-    'reviewing': 'Reviewing',
-    'returned': 'Returned',
-    'rewriting': 'Rewriting',
-    'published': 'Published'
-};
+        'assigned': 'Assigned',
+        'reviewing': 'Reviewing',
+        'returned': 'Returned',
+        'rewriting': 'Rewriting',
+        'published': 'Published'
+    };
 
     essays.forEach(essay => {
-        const displayStatus = studentStatusMap[essay.status] || 'Processing';
+        const displayStatus = studentStatusMap[essay.status] || 'Submitted';
+        
+        // NOTICE THE ONCLICK HERE: It passes the ID and the Status
         const row = `
             <tr onclick="openStudentEssay('${essay.id}', '${essay.status}')" style="cursor:pointer;" title="Click to open">
                 <td><b>${essay.title}</b></td>
@@ -1145,34 +1151,46 @@ async function openStudentRewrite(essayId) {
     // ... code to open the essay in their editor ...
 }
 async function openStudentEssay(essayId, currentStatus) {
-    // Only let them open it if the teacher returned it, or if they are already rewriting it
+    console.log("Student clicked essay:", essayId, "Status:", currentStatus);
+
+    // Only allow opening if it was returned or is already being rewritten
     if (currentStatus === 'returned' || currentStatus === 'rewriting') {
         
-        // 1. Change status to 'rewriting'
+        // Push status to rewriting
         await supabaseClient.from('essays').update({ status: 'rewriting' }).eq('id', essayId);
-        fetchUserEssays(); // Refresh dashboard behind the scenes
+        
+        // Fetch the latest data including teacher notes
+        const { data: essay, error } = await supabaseClient
+            .from('essays')
+            .select('*')
+            .eq('id', essayId)
+            .single();
 
-        // 2. Fetch the essay with the teacher's notes
-        const { data: essay } = await supabaseClient.from('essays').select('*').eq('id', essayId).single();
+        if (error) {
+            console.error("Error loading essay details:", error);
+            alert("Could not load the essay. Check console.");
+            return;
+        }
+
         activeEssayId = essayId;
 
-        // 3. Populate the Feedback Modal
+        // Populate the modal
         document.getElementById('view-essay-title').innerText = essay.title;
-        document.getElementById('view-teacher-note').innerText = essay.teacher_notes || "No specific notes provided.";
+        document.getElementById('view-teacher-note').innerText = essay.teacher_notes || "No notes provided.";
         
-        // 4. Load the text and MAKE IT EDITABLE so the student can polish it!
+        // Load the corrected content and make it editable!
         const contentBox = document.getElementById('view-corrected-content');
         contentBox.innerHTML = essay.corrected_content || essay.content;
         contentBox.setAttribute('contenteditable', 'true'); 
 
-        // 5. Show the modal
+        // Show the modal
         document.getElementById('feedback-modal').style.display = 'block';
+        fetchUserEssays(); // Update table in background
 
     } else {
         alert(`This essay is currently ${currentStatus}. You can only open 'Returned' essays.`);
     }
 }
-
 async function publishEssay() {
     // Grab the final polished text from the editable box
     const polishedContent = document.getElementById('view-corrected-content').innerHTML;
