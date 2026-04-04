@@ -742,71 +742,90 @@ function showPage(pageId) {
 async function performSignup(isTeacher) {
     const prefix = isTeacher ? 'rev-' : '';
     
+    // Get values
     const name = document.getElementById(`${prefix}reg-name`).value.trim();
     const username = document.getElementById(`${prefix}reg-user`).value.trim();
     const password = document.getElementById(`${prefix}reg-pass`).value;
     
-    if (!isTeacher) {
-        const confirmPass = document.getElementById('reg-confirm').value;
-        if (password !== confirmPass) {
-            alert("Passwords do not match!");
-            return;
-        }
-    }
-
+    // Basic Validation
     if (!name || !username || !password) {
-        alert("Please fill in all required fields.");
+        alert("Please fill in all fields.");
         return;
     }
 
+    // Convert username to the "fake email" format
     const fakeEmail = `${username.toLowerCase().replace(/\s+/g, '')}@kwaderno.app`;
-    console.log("Attempting to sign up:", fakeEmail);
 
-    // Build the metadata object based on the user type
-    let userMetadata = {
+    // Metadata - Simplified to troubleshoot the 500 error
+    const userMetadata = {
         full_name: name,
         username: username,
         role: isTeacher ? 'reviewer' : 'student'
     };
 
-    // If it's a teacher, grab the extra fields!
+    // Only add these if it's a teacher
     if (isTeacher) {
-        userMetadata.profession = document.getElementById('rev-prof').value.trim();
-        userMetadata.experience = document.getElementById('rev-exp').value.trim();
+        userMetadata.profession = document.getElementById('rev-prof').value;
+        userMetadata.experience = document.getElementById('rev-exp').value;
     }
 
-    const { data, error } = await supabaseClient.auth.signUp({
-        email: fakeEmail,
-        password: password,
-        options: { data: userMetadata }
-    });
+    try {
+        const { data, error } = await supabaseClient.auth.signUp({
+            email: fakeEmail,
+            password: password,
+            options: { 
+                data: userMetadata,
+                // This prevents Supabase from needing a real email confirmation
+                emailRedirectTo: window.location.origin 
+            }
+        });
 
-    if (error) {
-        console.error("Signup Error:", error);
-        alert("Signup Failed: " + error.message + "\n(Check your Supabase database triggers if this persists!)");
+        if (error) throw error;
+
+        alert("Account created! Redirecting to login...");
+        showPage(isTeacher ? 'reviewer-login' : 'login-page');
+
+    } catch (err) {
+        console.error("Signup Error Details:", err);
+        alert("Error: " + err.message);
+    }
+}
+async function performLogin(isTeacher) {
+    const prefix = isTeacher ? 'rev-' : '';
+    const username = document.getElementById(`${prefix}login-user`).value.trim();
+    const password = document.getElementById(`${prefix}login-pass`).value;
+
+    if (!username || !password) {
+        alert("Please enter both username and password.");
         return;
     }
 
-    alert("Account created successfully! You can now log in.");
-    
-    // Clear fields
-    document.getElementById(`${prefix}reg-name`).value = '';
-    document.getElementById(`${prefix}reg-user`).value = '';
-    document.getElementById(`${prefix}reg-pass`).value = '';
-    if (!isTeacher) document.getElementById('reg-confirm').value = '';
-    if (isTeacher) {
-        document.getElementById('rev-prof').value = '';
-        document.getElementById('rev-exp').value = '';
+    // Must match the "fake email" logic from signup!
+    const fakeEmail = `${username.toLowerCase().replace(/\s+/g, '')}@kwaderno.app`;
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: fakeEmail,
+        password: password,
+    });
+
+    if (error) {
+        alert("Login failed: " + error.message);
+        return;
     }
 
-    showPage(isTeacher ? 'reviewer-login' : 'login-page');
+    // Check user role from metadata to make sure they are in the right place
+    const userRole = data.user.user_metadata.role;
+    
+    if (isTeacher && userRole !== 'reviewer') {
+        alert("This is a teacher login. Please use the student login page.");
+        await supabaseClient.auth.signOut();
+        return;
+    }
+
+    // Success! Redirect to dashboard
+    showPage(isTeacher ? 'reviewer-dash' : 'writer-dash');
 }
 function performRevLogin() { performLogin(true); 
-}
-
-// Add this inside the logic that shows the teacher dashboard
-if (pageId === 'reviewer-dash') {
-    loadTeacherDashboard();
 }
 
 // --- 4. WRITER LOGIC ---
