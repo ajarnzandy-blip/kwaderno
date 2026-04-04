@@ -691,8 +691,8 @@
 
 <script>
 // --- 1. INITIALIZATION ---
-const SUPABASE_URL = 'https://greripiiyckkfowmgvoi.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyZXJpcGlpeWNra2Zvd21ndm9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzUxOTksImV4cCI6MjA5MDY1MTE5OX0.PWEnmh2kZ7D_QQTjaJh_wHhm_n1fX79m0p4XqA325ho';
+const SUPABASE_URL = 'https://lftwjduikvoqcmhnlnej.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmdHdqZHVpa3ZvcWNtaG5sbmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNzc5ODAsImV4cCI6MjA5MDg1Mzk4MH0.tjoliaG-mCFwfJNabeUj3eTgq5kZ0F0QY3Z6klSDqkg';
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -719,64 +719,102 @@ function handleNavAction() {
 
 // --- 3. UPDATED SIGNUP (Handles the Role correctly) ---
 async function performSignup(isTeacher = false) {
-    const user = isTeacher ? document.getElementById('rev-reg-user').value : document.getElementById('reg-user').value;
-    const pass = isTeacher ? document.getElementById('reg-pass').value : document.getElementById('reg-pass').value;
-    const name = isTeacher ? document.getElementById('rev-reg-name').value : document.getElementById('reg-name').value;
-    
-    // Safety check for empty fields
-    if (!user || !pass) return alert("Username and Password are required!");
+    const user = isTeacher 
+        ? document.getElementById('rev-reg-user').value 
+        : document.getElementById('reg-user').value;
 
-    const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+    const pass = isTeacher 
+        ? document.getElementById('rev-reg-pass').value 
+        : document.getElementById('reg-pass').value;
+
+    const name = isTeacher 
+        ? document.getElementById('rev-reg-name').value 
+        : document.getElementById('reg-name').value;
+
+    if (!user || !pass) {
+        alert("Username and Password are required!");
+        return;
+    }
+
+    // 1. SIGN UP
+    const { data, error } = await supabaseClient.auth.signUp({
         email: user + "@kwaderno.com",
-        password: pass,
-        options: { 
-            data: { 
-                full_name: name, 
-                role: isTeacher ? 'teacher' : 'student',
-                username: user
-            } 
-        }
+        password: pass
     });
 
-    if (authError) return alert("Signup Error: " + authError.message);
-    
-    alert("Account created successfully! Please log in.");
+    if (error) {
+        alert("Signup Error: " + error.message);
+        return;
+    }
+
+    const userId = data.user.id;
+
+    // 2. CREATE PROFILE (THIS WAS MISSING ❗)
+    const { error: profileError } = await supabaseClient
+        .from('profiles')
+        .insert([{
+            id: userId,
+            username: user,
+            full_name: name,
+            role: isTeacher ? 'teacher' : 'student'
+        }]);
+
+    if (profileError) {
+        alert("Profile Error: " + profileError.message);
+        return;
+    }
+
+    alert("Account created! Please log in.");
     showPage(isTeacher ? 'reviewer-login' : 'login-page');
 }
-
 // Teacher-specific signup step 2
 function completeRevSignup() { performSignup(true); }
 
 // --- 4. UPDATED LOGIN (Fixes the ReferenceError) ---
 async function performLogin(isTeacher = false) {
-    const userIn = isTeacher ? document.getElementById('rev-user-in').value : document.getElementById('login-user').value;
-    const passIn = isTeacher ? document.getElementById('rev-pass-in').value : document.getElementById('login-pass').value;
+    const userIn = isTeacher 
+        ? document.getElementById('rev-user-in').value 
+        : document.getElementById('login-user').value;
 
-    const { data: authResult, error: authError } = await supabaseClient.auth.signInWithPassword({
+    const passIn = isTeacher 
+        ? document.getElementById('rev-pass-in').value 
+        : document.getElementById('login-pass').value;
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
         email: userIn + "@kwaderno.com",
         password: passIn
     });
 
-    if (authError) return alert("Login Error: " + authError.message);
+    if (error) {
+        alert("Login Error: " + error.message);
+        return;
+    }
 
-    // Fetch the profile to confirm role
+    const user = data.user;
+
+    // GET PROFILE
     const { data: profile, error: profError } = await supabaseClient
         .from('profiles')
         .select('*')
-        .eq('id', authResult.user.id)
-        .maybeSingle();
+        .eq('id', user.id)
+        .single();
 
-    if (!profile) return alert("Profile not found. Contact support.");
+    if (profError || !profile) {
+        alert("Profile not found.");
+        return;
+    }
 
-    currentUser = { ...authResult.user, ...profile };
+    currentUser = { ...user, ...profile };
 
-    // ROUTING LOGIC
+    // ROUTE
     if (profile.role === 'teacher') {
-        document.getElementById('rev-welcome').innerText = `Hello, Editor ${profile.full_name}`;
+        document.getElementById('rev-welcome').innerText =
+            `Hello, Editor ${profile.full_name}`;
         loadTeacherDashboard();
         showPage('reviewer-dash');
     } else {
-        document.getElementById('welcome-msg').innerText = `Welcome, ${profile.full_name}`;
+        document.getElementById('welcome-msg').innerText =
+            `Welcome, ${profile.full_name}`;
         loadUserEssays();
         showPage('writer-dash');
     }
@@ -911,7 +949,15 @@ function toggleAvail() {
     const checked = document.getElementById('rev-avail').checked;
     console.log('Teacher availability:', checked);
 }
-window.onload = () => showPage('home');
+window.onload = async () => {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  
+  if (session) {
+    performLoginAuto(session.user);
+  } else {
+    showPage('home');
+  }
+};
 </script>
 </body>
 </html>
