@@ -901,31 +901,41 @@ async function loadTeacherDashboard() {
 }
 
 async function openReviewEditor(essayId) {
-    // 1. Update the status in the DB so the student sees "Assigned"
-    await supabaseClient
+    console.log("Opening essay:", essayId);
+
+    // 1. Change status to 'assigned' (This updates the student's dashboard!)
+    const { error: updateError } = await supabaseClient
         .from('essays')
-        .update({ status: 'assigned' }) // This changes the student's view!
+        .update({ status: 'assigned' }) 
         .eq('id', essayId);
 
-    // 2. Fetch the essay details to show in the editor
-    const { data: essay } = await supabaseClient
+    if (updateError) {
+        console.error("Failed to update status:", updateError);
+        alert("Error: Could not update status. Check RLS policies.");
+        return;
+    }
+
+    // 2. Fetch the actual essay text
+    const { data: essay, error: fetchError } = await supabaseClient
         .from('essays')
         .select('*')
         .eq('id', essayId)
         .single();
 
-    activeEssayId = essayId;
-    document.getElementById('editing-title').innerText = `Reviewing: ${essay.title}`;
-    document.getElementById('student-original-content').innerText = essay.content;
-    document.getElementById('teacher-correction-content').innerText = essay.content;
-    
-    showPage('review-editor');
-    
-    // Refresh lists so the status update shows everywhere
-    fetchUserEssays();
-    loadTeacherDashboard();
-}
+    if (fetchError) {
+        console.error("Failed to fetch essay content:", fetchError);
+        return;
+    }
 
+    // 3. Put the text into the editing screens
+    activeEssayId = essayId;
+    document.getElementById('editing-title').innerText = `Proofreading: ${essay.title}`;
+    document.getElementById('student-original-content').innerText = essay.content || "No content.";
+    document.getElementById('teacher-correction-content').innerText = essay.content || "No content.";
+    
+    // 4. Switch to the review page
+    showPage('review-editor');
+}
 async function saveReview() {
     const correction = document.getElementById('teacher-correction-content').innerHTML;
     const notes = document.getElementById('teacher-comments').value;
