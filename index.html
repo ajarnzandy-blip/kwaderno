@@ -709,8 +709,11 @@ function showPage(pageId) {
         if (navBtn) navBtn.style.display = (pageId === 'home') ? 'none' : 'block';
         window.scrollTo(0, 0);
     }
-}
 
+    // THIS IS THE CORRECT PLACE TO TRIGGER DASHBOARD REFRESHES
+    if (pageId === 'reviewer-dash') loadTeacherDashboard();
+    if (pageId === 'writer-dash') fetchUserEssays();
+}
 function handleNavAction() {
     if (!currentUser) return showPage('home');
     showPage(currentUser.role === 'teacher' ? 'reviewer-dash' : 'writer-dash');
@@ -937,23 +940,29 @@ async function openReviewEditor(essayId) {
     showPage('review-editor');
 }
 async function saveReview() {
+    // 1. Grab the text from the teacher's screen FIRST
     const teacherNotes = document.getElementById('teacher-comments').value;
     const correctedContent = document.getElementById('teacher-correction-content').innerHTML;
 
+    // 2. Push it to Supabase
     const { error } = await supabaseClient
         .from('essays')
         .update({ 
-            status: 'returned', // Pushes it back to the student
+            status: 'returned',
             teacher_notes: teacherNotes,
-            corrected_content: correctedContent
+            corrected_content: correctedContent 
         })
         .eq('id', activeEssayId);
 
-    if (!error) {
-        alert("Essay returned to student!");
-        showPage('reviewer-dash');
-        loadTeacherDashboard(); // Refresh their list
+    // 3. Handle success or error
+    if (error) {
+        console.error("Error saving review:", error);
+        alert("Failed to return essay. Check console.");
+        return;
     }
+
+    alert("Essay returned to student!");
+    showPage('reviewer-dash'); // This will automatically refresh the list now!
 }
 // --- 6. FEEDBACK VIEW (FOR STUDENT) ---
 async function viewFeedback(id) {
