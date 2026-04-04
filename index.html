@@ -391,11 +391,11 @@
       <h2>Digital Formal Theme Notebook</h2>
       <p>Kwaderno is a digital formal theme notebook where students compose essays in a focused cursive workspace, teachers provide live feedback using a digital red pen, and polished works are shared to inspire a community of writers.</p>
       
-      <div class="pillars">
-        <button class="btn-pillar btn-read" onclick="showPage('read')">Read</button>
-        <button class="btn-pillar btn-write" onclick="showPage('write')">Write</button>
-        <button class="btn-pillar btn-check" onclick="showPage('check')">Check</button>
-      </div>
+        <div class="pillars">
+            <button class="btn-pillar btn-read" onclick="showPage('read')">Read</button>
+            <button class="btn-pillar btn-write" onclick="showPage('login-page')">Write</button>
+            <button class="btn-pillar btn-check" onclick="showPage('reviewer-login')">Check</button>
+        </div>
     </div>
 
     <div class="how">
@@ -684,25 +684,43 @@
 
 <script>
 // --- 1. INITIALIZATION ---
+// Ensure the library is loaded before calling createClient
 const SUPABASE_URL = 'https://greripiiyckkfowmgvoi.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyZXJpcGlpeWNra2Zvd21ndm9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzUxOTksImV4cCI6MjA5MDY1MTE5OX0.PWEnmh2kZ7D_QQTjaJh_wHhm_n1fX79m0p4XqA325ho';
 
+// Standard Supabase initialization
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
 let activeEssayId = null;
 
-// --- 2. NAVIGATION & UI ---
+// --- 2. NAVIGATION ---
 function showPage(pageId) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    const target = document.getElementById(pageId);
-    if (target) target.classList.add('active');
+    console.log("Attempting to show page:", pageId);
     
-    // Toggle Nav Button
-    const navBtn = document.getElementById('nav-btn');
-    navBtn.style.display = (pageId === 'home') ? 'none' : 'block';
+    const target = document.getElementById(pageId);
+    
+    if (target) {
+        // 1. Hide all pages
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        
+        // 2. Show the specific page
+        target.classList.add('active');
+        
+        // 3. Handle the Back Button visibility
+        const navBtn = document.getElementById('nav-btn');
+        if (navBtn) {
+            navBtn.style.display = (pageId === 'home') ? 'none' : 'block';
+        }
+        
+        // 4. Scroll to top so the user sees the start of the new page
+        window.scrollTo(0, 0);
+    } else {
+        console.error(`CRITICAL: The section with ID "${pageId}" does not exist in your HTML.`);
+    }
 }
 
+// Global back button logic
 function handleNavAction() {
     if (currentUser) {
         showPage(currentUser.role === 'teacher' ? 'reviewer-dash' : 'writer-dash');
@@ -711,49 +729,67 @@ function handleNavAction() {
     }
 }
 
-// --- 3. AUTHENTICATION LOGIC ---
+// --- 3. AUTHENTICATION ---
 async function performSignup() {
-    const email = document.getElementById('reg-user').value + "@kwaderno.com"; // Pseudo-email for simplicity
+    const username = document.getElementById('reg-user').value;
+    const email = username + "@kwaderno.com"; 
     const password = document.getElementById('reg-pass').value;
     const fullName = document.getElementById('reg-name').value;
 
-    const { data, error } = await supabaseClient.auth.signUp({ email, password });
+    if (!username || !password || !fullName) return alert("Please fill all fields");
 
-    if (error) return alert(error.message);
+    const { data, error } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+            data: {
+                full_name: fullName,
+                username: username,
+                role: 'student'
+            }
+        }
+    });
 
-    // Create Profile entry
-    await supabaseClient.from('profiles').insert([
-        { id: data.user.id, full_name: fullName, role: 'student' }
-    ]);
-
-    alert("Account created! Please login.");
+    if (error) return alert("Signup Error: " + error.message);
+    
+    alert("Account created! You can now login.");
     showPage('login-page');
 }
 
 async function performLogin() {
-    const email = document.getElementById('login-user').value + "@kwaderno.com";
-    const password = document.getElementById('login-pass').value;
+    const userIn = document.getElementById('login-user').value;
+    const passIn = document.getElementById('login-pass').value;
+    const email = userIn + "@kwaderno.com";
 
-    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: passIn
+    });
+
     if (error) return alert("Login failed: " + error.message);
 
-    // Fetch Profile
-    const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', data.user.id).single();
-    
+    // Get the profile data we created during signup
+    const { data: profile, error: profError } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+    if (profError) return alert("Profile error: " + profError.message);
+
     currentUser = { ...data.user, ...profile };
-    document.getElementById('welcome-msg').innerText = `Welcome, ${profile.full_name}`;
     
+    document.getElementById('welcome-msg').innerText = `Welcome, ${profile.full_name}`;
     loadUserEssays();
     showPage('writer-dash');
 }
 
-// --- 4. WRITER LOGIC ---
+// --- 4. ESSAY MANAGEMENT ---
 async function submitEssay() {
     const title = document.getElementById('essay-title').value;
     const body = document.getElementById('essay-body').value;
 
-    if(!title || !body) return alert("Please fill in both title and content.");
+    if (!title || !body) return alert("Don't leave the page blank!");
 
     const { error } = await supabaseClient.from('essays').insert([
         { 
@@ -764,9 +800,12 @@ async function submitEssay() {
         }
     ]);
 
-    if (error) alert(error.message);
-    else {
-        alert("Essay submitted for review!");
+    if (error) {
+        alert("Submission failed: " + error.message);
+    } else {
+        alert("Essay submitted successfully!");
+        document.getElementById('essay-title').value = "";
+        document.getElementById('essay-body').value = "";
         loadUserEssays();
         showPage('writer-dash');
     }
@@ -776,338 +815,43 @@ async function loadUserEssays() {
     const { data, error } = await supabaseClient
         .from('essays')
         .select('*')
-        .eq('student_id', currentUser.id);
+        .eq('student_id', currentUser.id)
+        .order('created_at', { ascending: false });
 
     const list = document.getElementById('user-essay-list');
-    list.innerHTML = "";
-
-    data.forEach(essay => {
-        const row = `<tr>
-            <td>${essay.title}</td>
-            <td>${new Date(essay.created_at).toLocaleDateString()}</td>
-            <td><span class="status-pill status-${essay.status}">${essay.status}</span></td>
-            <td>${essay.status === 'reviewed' ? `<button onclick="viewFeedback('${essay.id}')">View</button>` : ''}</td>
-        </tr>`;
-        list.innerHTML += row;
-    });
-}
-
-// --- 5. REVIEWER LOGIC ---
-async function loadPendingEssays() {
-    const { data } = await supabaseClient.from('essays').select('*, profiles(full_name)').eq('status', 'submitted');
-    const container = document.getElementById('assigned-list');
-    container.innerHTML = "";
-
-    data.forEach(essay => {
-        container.innerHTML += `
-            <div class="reviewer-card">
-                <b>${essay.title}</b> by ${essay.profiles.full_name}
-                <button onclick="openReviewEditor('${essay.id}')" style="float:right">Review</button>
-            </div>`;
-    });
-}
-
-async function openReviewEditor(id) {
-    activeEssayId = id;
-    const { data } = await supabaseClient.from('essays').select('*').eq('id', id).single();
+    if (!list) return;
     
-    document.getElementById('editing-title').innerText = `Editing: ${data.title}`;
-    document.getElementById('student-original-content').innerText = data.body;
-    document.getElementById('teacher-correction-content').innerHTML = data.body; // Start with original
-    showPage('review-editor');
-}
-
-async function saveReview() {
-    const correction = document.getElementById('teacher-correction-content').innerHTML;
-    const notes = document.getElementById('teacher-comments').value;
-
-    const { error } = await supabaseClient.from('essays').update({
-        correction_body: correction,
-        teacher_notes: notes,
-        status: 'reviewed',
-        teacher_id: currentUser.id
-    }).eq('id', activeEssayId);
-
-    if(error) alert(error.message);
-    else {
-        alert("Review Sent!");
-        loadPendingEssays();
-        showPage('reviewer-dash');
+    list.innerHTML = "";
+    if (data) {
+        data.forEach(essay => {
+            list.innerHTML += `
+                <tr>
+                    <td>${essay.title}</td>
+                    <td>${new Date(essay.created_at).toLocaleDateString()}</td>
+                    <td><span class="status-pill status-${essay.status}">${essay.status.toUpperCase()}</span></td>
+                </tr>`;
+        });
     }
 }
 
-// --- 6. UTILS ---
-function applyMark(command, value = null) {
-    document.execCommand(command, false, value);
-}
-
+// Editor Utilities
 function updateStats() {
     const text = document.getElementById('essay-body').value;
-    const count = text.trim() ? text.trim().split(/\s+/).length : 0;
-    document.getElementById('word-num').innerText = count;
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    document.getElementById('word-num').innerText = words;
 }
 
 function updateFontStyle() {
     const style = document.getElementById('font-style').value;
     const body = document.getElementById('essay-body');
-    body.className = (style === 'cursive') ? 'notebook-body cursive-font' : 'notebook-body';
+    body.style.fontFamily = (style === 'cursive') ? "'Dancing Script', cursive" : "serif";
 }
 
-// --- 5. THE DIGITAL RED PEN ---
-function applyMark(command, value = null) {
-    document.execCommand(command, false, value);
-    document.getElementById('teacher-correction-content').focus();
-}
-
-function openReviewEditor(id) {
-    const essay = allEssays.find(e => e.id === id);
-    activeEssayId = id;
-    document.getElementById('editing-title').innerText = "Reviewing: " + essay.title;
-    document.getElementById('student-original-content').innerText = essay.body;
-    
-    // Set up the editable area
-    const editor = document.getElementById('teacher-correction-content');
-    editor.innerHTML = essay.body; 
-    showPage('review-editor');
-}
-
-function saveReview() {
-    const correctedHtml = document.getElementById('teacher-correction-content').innerHTML;
-    const note = document.getElementById('teacher-comments').value;
-
-    // Find the essay in our master list
-    const essay = allEssays.find(e => e.id === activeEssayId);
-    if(essay) {
-        essay.correction = correctedHtml;
-        essay.comments = note;
-        essay.status = 'Reviewed'; // THE STATUS CHANGE
-        
-        currentRev.finished++; // Increment teacher's stats
-        alert("Review complete! Paper returned to " + essay.author);
-        showPage('reviewer-dash');
-    }
-}
-
-function viewFeedback(id) {
-    const essay = allEssays.find(e => e.id === id);
-    document.getElementById('view-essay-title').innerText = essay.title;
-    document.getElementById('view-teacher-note').innerText = essay.comments || "Great job!";
-    document.getElementById('view-corrected-content').innerHTML = essay.correction;
-    document.getElementById('feedback-modal').style.display = 'block';
-}
-
-function closeFeedback() {
-    document.getElementById('feedback-modal').style.display = 'none';
-}
-
-// --- 6. HELPERS ---
-function updateStats() {
-    const text = document.getElementById('essay-body').value;
-    const count = text.trim() ? text.trim().split(/\s+/).length : 0;
-    document.getElementById('word-num').innerText = count;
-}
-
-function updateFontStyle() {
-    const isCursive = document.getElementById('font-style').value === 'cursive';
-    document.getElementById('essay-body').classList.toggle('cursive-font', isCursive);
-}
-
-function toggleAvail() {
-    currentRev.available = document.getElementById('rev-avail').checked;
-}
-// --- PUBLIC LIBRARY LOGIC ---
-function renderEssays(essaysToRender) {
-    const list = document.getElementById('essay-list');
-    if (!list) return;
-
-    list.innerHTML = essaysToRender.map(e => `
-        <div class="essay-card">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                <div>
-                    <h3 style="margin: 0 0 5px 0; color: var(--deep-green);">${e.title}</h3>
-                    <span style="font-size: 0.8rem; color: var(--muted);">By <b>${e.author}</b> • ${e.date}</span>
-                </div>
-                <div style="background: var(--paper); padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); font-size: 0.75rem; font-weight: 700; color: var(--deep-green);">
-                    👁️ ${e.views} Views
-                </div>
-            </div>
-            <p style="font-size: 0.9rem; color: #444; margin: 15px 0;">${e.excerpt}</p>
-            <button class="btn-read-more" onclick="viewFullEssay(${e.id})">Read Full Essay</button>
-        </div>
-    `).join('');
-}
-// --- SORTING LOGIC ---
-function sortEssays(criteria) {
-    let sorted = [...publishedEssays]; // Create a copy to sort
-    
-    if (criteria === 'newest') {
-        sorted.sort((a, b) => new Date(b.date) - new Date(a.date));
-    } else if (criteria === 'oldest') {
-        sorted.sort((a, b) => new Date(a.date) - new Date(b.date));
-    } else if (criteria === 'views') {
-        // We use parseInt to ensure the "412 Views" string is treated as a number
-        sorted.sort((a, b) => parseInt(b.views) - parseInt(a.views));
-    
-}
-
-// --- REFRESH LOGIC ---
-function refreshLibrary() {
-    // Clear search input
-    const searchInput = document.querySelector('input[oninput="handleSearch(this.value)"]');
-    if (searchInput) searchInput.value = "";
-    
-    // Reset sort dropdown
-    const sortSelect = document.querySelector('select[onchange="sortEssays(this.value)"]');
-    if (sortSelect) sortSelect.value = "newest";
-
-    // Re-render original list
-    renderEssays(publishedEssays);
-}
-}
-
-function handleSearch(query) {
-    const filtered = publishedEssays.filter(e => 
-        e.title.toLowerCase().includes(query.toLowerCase()) || 
-        e.author.toLowerCase().includes(query.toLowerCase())
-    );
-    renderEssays(filtered);
-}
-
-function viewFullEssay(id) {
-    const essay = publishedEssays.find(e => e.id === id);
-    if (!essay) return;
-    
-    // Using your existing feedback-modal to show the full essay
-    document.getElementById('view-essay-title').innerText = essay.title;
-    document.getElementById('view-teacher-note').innerText = "Publicly shared masterpiece.";
-    document.getElementById('view-corrected-content').innerText = essay.body;
-    
-    // Show the modal
-    document.getElementById('feedback-modal').style.display = 'block';
-}
-
-function closeFeedback() {
-    document.getElementById('feedback-modal').style.display = 'none';
-}
-function openViewModal(essayId, isPublishedList = true) {
-    let essay;
-    if (isPublishedList) {
-        essay = publishedEssays.find(e => e.id === essayId);
-    } else {
-        essay = allEssays.find(e => e.id === essayId);
-    }
-
-    if (!essay) return;
-
-    // Fill the Modal with Data
-    document.getElementById('view-essay-title').innerText = essay.title;
-    
-    // If it has teacher comments, show them. If not (like a sample), show a default note.
-    document.getElementById('view-teacher-note').innerText = essay.comments || "This is a published version of the formal theme.";
-    
-    // Show the content (Prefer 'correction' if it exists, otherwise 'body')
-    const contentToDisplay = essay.correction || essay.body;
-    document.getElementById('view-corrected-content').innerHTML = contentToDisplay;
-
-    // Open the Modal
-    document.getElementById('feedback-modal').style.display = 'block';
-}
-function publishResource() {
-    const title = document.getElementById('new-link-title').value;
-    const url = document.getElementById('new-link-url').value;
-
-    if(!title || !url) return alert("Please fill in both the title and the link!");
-
-    // 1. Add to our global list
-    globalResources.unshift({ title: title, url: url });
-
-    // 2. Clear the inputs
-    document.getElementById('new-link-title').value = "";
-    document.getElementById('new-link-url').value = "";
-
-    alert(`Resource Published: ${title}`);
-    
-    // Optional: If you want to see it immediately without refreshing
-    console.log("Current Resources:", globalResources);
-}
-document.getElementById('essay-body').addEventListener('keydown', function(e) {
-    // 1. Handle Tab Key
-    if (e.key === 'Tab') {
-        e.preventDefault();
-        const start = this.selectionStart;
-        const end = this.selectionEnd;
-        this.value = this.value.substring(0, start) + "             " + this.value.substring(end);
-        this.selectionStart = this.selectionEnd = start + 9;
-    }
-
-    // 2. Handle Enter Key (Automatic Indent for next paragraph)
-    if (e.key === 'Enter') {
-        // We use a short timeout so the 'Enter' actually registers first
-        setTimeout(() => {
-            const start = this.selectionStart;
-            const end = this.selectionEnd;
-            this.value = this.value.substring(0, start) + "             " + this.value.substring(end);
-            this.selectionStart = this.selectionEnd = start + 9;
-        }, 10);
-    }
-});
-function openSettings() {
-    const user = currentUser || currentRev;
-    if (!user) return alert("Please log in first.");
-    
-    document.getElementById('settings-user-display').innerText = "Changing password for: " + user.user;
-    document.getElementById('settings-modal').style.display = 'block';
-}
-
-function closeSettings() {
-    document.getElementById('settings-modal').style.display = 'none';
-    // Clear inputs
-    document.getElementById('old-pass').value = "";
-    document.getElementById('new-pass').value = "";
-    document.getElementById('confirm-new-pass').value = "";
-}
-
-function updatePassword() {
-    const oldP = document.getElementById('old-pass').value;
-    const newP = document.getElementById('new-pass').value;
-    const confP = document.getElementById('confirm-new-pass').value;
-    
-    // 1. Identify who is logged in
-    let userObj = currentUser || currentRev;
-
-    // 2. Validations
-    if (oldP !== userObj.pass) {
-        return alert("Current password incorrect!");
-    }
-    if (newP.length < 6) {
-        return alert("New password must be at least 6 characters.");
-    }
-    if (newP !== confP) {
-        return alert("New passwords do not match!");
-    }
-
-    // 3. Update the local "Database"
-    userObj.pass = newP;
-    
-    alert("Password updated successfully! Please use your new password next time you log in.");
-    closeSettings();
-}
-async function fetchUserEssays() {
-    const { data, error } = await supabaseClient
-        .from('essays')
-        .select('*')
-        .eq('author_id', currentUser.id);
-
-    if (error) {
-        console.error(error);
-        return;
-    }
-
-    allEssays = data;
-    renderWriterDash();
-}
+// Initialize
+window.onload = () => {
+    showPage('home');
+};
 </script>
-
 </body>
 </html>
 
