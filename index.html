@@ -3,7 +3,9 @@
 <html lang="en">
 <head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@900&display=swap" rel="stylesheet">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kwaderno — Write like it matters.</title>
@@ -25,12 +27,12 @@
       color: var(--ink);
       display: flex;
       flex-direction: column;
-      min-height: 100vh;
+      min-height: auto;
     }
     header { 
       background: var(--deep-green); 
       color: white; 
-      padding: 1.0rem 1rem;
+      padding: 0.9rem 1rem 0rem 1rem;
       display: flex; 
       flex-direction: column;
       align-items: center;
@@ -42,22 +44,26 @@
       width: 75px; height: 75px;
       background: var(--squash); 
       border-radius: 16px; display: grid; place-items: center; 
-      color: var(--deep-green); margin-bottom: 1.0rem;
+      color: var(--deep-green); margin-bottom: 0.3rem;
       box-shadow: 0 4px 20px rgba(0,0,0,0.2);
     }
     .brand-text b { 
-      display: block; 
-      font-size: 3.5rem;
-      letter-spacing: 5px; line-height: 1; margin-bottom: 0.5rem;
-      font-weight: 900;
+    display: block; 
+    font-family: 'Outfit', serif; 
+    font-size: 4rem;               
+    letter-spacing: 0.5px;             
+    line-height: 1.0; 
+    margin-bottom: 0.4rem;
+    font-weight: 800;                
+    text-transform: lowercase;      
     }
     .brand-text span { 
       display: block;
-      font-family: 'Dancing Script', cursive; 
-      font-size: 1.8rem;
+      font-family: 'Lato', serif; 
+      font-size: 1.2rem;
       color: var(--squash); 
       text-transform: none;
-      letter-spacing: 2px; 
+      letter-spacing: 1px; 
       margin-top: -5px; 
       font-weight: 600;
     }
@@ -79,27 +85,27 @@
     .hero {
       background: white;
       text-align: center;
-      padding: 3rem 1.5rem;
+      padding: 1.5rem 1.5rem;
     }
-    .hero h2 { color: var(--deep-green); font-size: 2.5rem; margin: 0 0 0.5rem 0; font-weight: 900; }
-    .hero p { color: var(--muted); line-height: 1.6; max-width: 700px; margin: 0 auto 1.0rem auto; font-size: 1.1rem; }
+    .hero h2 { color: var(--deep-green); font-size: 1.8rem; margin: 0 0 0rem 0; font-weight: 800; }
+    .hero p { color: var(--muted); line-height: 1.5; max-width: 600px; margin: 0 auto 1rem auto; font-size: 0.95rem; }
     .pillars {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-      max-width: 700px;
+      gap: 12px;
+      max-width: 500px;
       margin: 0 auto;
     }
     .btn-pillar {
-      padding: 15px 0;
-      border-radius: 12px;
+      padding: 10px 0;
+      border-radius: 8px;
       border: none;
       font-weight: 900;
-      font-size: 1.3rem; 
+      font-size: 1.1rem; 
       cursor: pointer;
       transition: 0.2s;
       text-transform: uppercase;
-      letter-spacing: 2px;
+      letter-spacing: 1.5px;
     }
     .btn-read { background: var(--deep-green); color: var(--squash); }
     .btn-write { background: var(--squash); color: var(--deep-green); }
@@ -108,16 +114,16 @@
     .how {
       padding: 0.5rem 1.5rem 1.5rem 1.5rem;
       text-align: center;
-      max-width: 1000px;
+      max-width:800px;
       margin: 0 auto;
     }
-    .how h3 { color: var(--deep-green); font-size: 2rem; margin: 0 0 0.5rem 0; font-weight: 800; }
-    .how-sub { color: var(--muted); font-size: 1.0rem; margin-bottom: 1.0rem; display: block; }
+    .how h3 { color: var(--deep-green); font-size: 1.5rem; margin: 0 0 0.2rem 0; font-weight: 800; }
+    .how-sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 1.0rem; display: block; }
     .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px; }
     .step { display: flex; flex-direction: column; align-items: center; }
-    .step-num { width: 40px; height: 40px; background: var(--deep-green); color: var(--squash); border-radius: 50%; display: grid; place-items: center; font-weight: 900; margin-bottom: 5px; font-size: 1.3rem; }
-    .step b { color: var(--deep-green); font-size: 1.2rem; margin-bottom: 5px; display: block; }
-    .step p { margin: 0; color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
+    .step-num { width: 32px; height: 32px; background: var(--deep-green); color: var(--squash); border-radius: 50%; display: grid; place-items: center; font-weight: 900; margin-bottom: 5px; font-size: 1rem; }
+    .step b { color: var(--deep-green); font-size: 1rem; margin-bottom: 5px; display: block; }
+    .step p { margin: 0; color: var(--muted); font-size: 0.8rem; line-height: 1.4; }
     .essay-card { background: white; border: 1px solid var(--border); padding: 20px; border-radius: 12px; transition: 0.2s; }
     .essay-card:hover { border-color: var(--squash); box-shadow: 0 4px 12px rgba(0,0,0,0.05); transform: translateY(-2px); }
     .btn-read-more { background: transparent; color: var(--deep-green); border: 1px solid var(--deep-green); padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: 0.2s; }
@@ -130,13 +136,13 @@
       .steps-grid { grid-template-columns: 1fr; }
       .hero h2 { font-size: 1.6rem; }
     }
-    .page { display: none; min-height: auto; padding: 40px 20px; }
+    .page { display: none; min-height: auto; padding: 30px; overflow-y: auto; }
     .page.active { display: block; }
-    .auth-container { max-width: 400px; margin: 2rem auto; padding: 2rem; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; }
+    .auth-container { max-width: 400px; margin: 0.5rem auto; padding: 1.0rem; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; position: relative; }
     .auth-container input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem; }
     .btn-auth { width: 100%; padding: 12px; background: var(--deep-green); color: white; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; margin-top: 10px; font-size: 1rem; }
     .btn-auth:hover { background: #14382a; }
-    .dash-container { max-width: 900px; margin: 2rem auto; padding: 20px; }
+    .dash-container { max-width: 800px; margin: -1rem auto; padding: 5px; }
     .user-info { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
     .stats-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
     .side-panel { background: white; padding: 20px; border-radius: 12px; height: fit-content; }
@@ -144,13 +150,14 @@
     .editor-toolbar { background: #e9ecef; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0; max-width: 800px; margin: 0 auto; }
     .notebook-container { background: var(--paper); max-width: 800px; margin: 0 auto 2rem auto; padding: 60px 50px; box-shadow: 0 0 20px rgba(0,0,0,0.1); min-height: 800px; border-radius: 0 0 12px 12px; }
     .notebook-paper { background-image: linear-gradient(#e1e1e1 1px, transparent 1px); background-size: 100% 2.5rem; line-height: 2.5rem; }
-    .notebook-title { width: 100%; border: none; background: transparent; font-size: 1.8rem; font-weight: 700; text-align: center; margin-bottom: 2rem; outline: none; border-bottom: 2px solid var(--deep-green); font-family: 'Inter', sans-serif; color: var(--deep-green); }
-    .notebook-body { width: 100%; min-height: 600px; border: none; background: transparent; font-size: 1.1rem; line-height: 2.5rem; resize: none; outline: none; text-indent: 40px; white-space: pre-wrap; word-wrap: break-word; }
-    .cursive-font { font-family: 'Dancing Script', cursive !important; font-size: 1.5rem !important; }
+    .notebook-title { width: 100%; border: none; background: transparent; font-size: 1.8rem; font-weight: 700; text-align: center; margin-bottom: 2rem; outline: none; border-bottom: 2px solid var(--deep-green); font-family: 'Lato', sans-serif; color: var(--deep-green); }
+    .notebook-body { width: 100%; min-height: 600px; border: none; background: transparent; font-size: 1.1rem; line-height: 2.5rem; resize: none; outline: none; white-space: pre-wrap; word-wrap: break-word; font-family: 'Palatino Linotype', 'Palatino', serif;}
+    .cursive-font { font-family: 'Dancing Script', cursive !important; font-size: 1.25rem !important; }
     .essay-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9rem; }
     .essay-table th { text-align: left; padding: 12px; border-bottom: 2px solid var(--border); color: var(--muted); }
     .essay-table td { padding: 12px; border-bottom: 1px solid var(--border); }
     .essay-table tr:hover { background-color: #f8fbf9; }
+    .essay-content p { text-indent: 1in; margin: 0; line-height: 2.5rem; font-family: 'Palatino Linotype', 'Palatino', serif; font-size: 1.1rem; }
     .status-pill { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; background: #eee; }
     .reviewer-card { background: white; padding: 15px 20px; border-radius: 8px; border-left: 5px solid var(--deep-green); margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; transition: 0.2s; }
     .reviewer-card:hover { border-color: var(--squash); transform: translateY(-2px); }
@@ -162,19 +169,42 @@
     #completed-list .reviewer-card:hover { opacity: 1; border-left-color: var(--deep-green); }
     .error-msg { color: #c0392b; font-size: 0.85rem; margin-top: 8px; }
     .success-msg { color: var(--deep-green); font-size: 0.85rem; margin-top: 8px; }
+    .notification-banner { display: none; background: white; border: 1.2px dashed #999; border-radius: 8px; padding: 10px 20px; margin-bottom: 20px; text-align: center; font-weight: 600; font-size: 1rem; font-family: 'Lato', sans-serif; color: #c0392b; letter-spacing: 1px; }
+    .notification-banner span { color: #c0392b; animation: flashRed 1.8s infinite; display: inline-block; }
+@keyframes flashRed { 0%, 100% { opacity: 1; } 50%       { opacity: 0.3; } }
   </style>
 </head>
 <body>
 
 <header>
   <div class="logo" onclick="showPage('home')" style="cursor:pointer">
-    <svg width="45" height="45" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"></path><line x1="16" y1="8" x2="2" y2="22"></line></svg>
-  </div>
-  <div class="brand-text" onclick="showPage('home')" style="cursor:pointer">
-    <b>KWADERNO</b>
-    <span>Write like it matters.</span>
-  </div>
-  <button id="nav-btn" class="nav-action" onclick="showPage('home')">← Back</button>
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width="45" 
+    height="45" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="var(--deep-green)" 
+    stroke-width="2.5" 
+    stroke-linecap="round" 
+    stroke-linejoin="round">
+      <path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/>
+      <path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/>
+      <path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/>
+  </svg>
+</div>
+  <div class="brand-text">
+  <b>kwaderno</b>
+  <span class="typing-demo">Your digital writing companion.</span>
+  <span class="cursor">&nbsp;</span>
+</div>
+  <button id="nav-btn" class="nav-action" onclick="showPage('home')" style="display: flex; align-items: center; gap: 8px;">
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
+    <path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>
+  </svg>
+  
+  <span style="font-weight: 700; letter-spacing: 0.5px;">BACK</span>
+</button>
 </header>
 
 <main>
@@ -214,7 +244,7 @@
 
   <!-- READ -->
   <section id="read" class="page">
-    <div style="max-width: 900px; margin: 0 auto;">
+    <div style="max-width: 700px; margin: 0 auto;">
       <div style="text-align: center; margin-bottom: 2rem;">
         <h2 style="font-size: 2.5rem; color: var(--deep-green); margin-bottom: 0.5rem;">Published Essays</h2>
         <p style="color: var(--muted);">Explore polished works from the Kwaderno community.</p>
@@ -270,25 +300,26 @@
     <div class="dash-container">
       <div class="user-info">
         <div>
-          <h2 id="welcome-msg" style="margin:0; color:var(--deep-green);">Welcome, Writer</h2>
+          <h2 id="welcome-msg" style="margin:0; color:var(--deep-green);">Welcome, Writer!</h2>
           <span style="font-size: 0.8rem; color:var(--muted);">Student Account</span>
         </div>
         <div style="display:flex; gap:10px;">
-          <button onclick="openSettings()" style="padding:8px 12px; border-radius:6px; border:1px solid #ddd; background:white; cursor:pointer;">Settings</button>
-          <button onclick="logout()" style="padding:8px 12px; border-radius:6px; background:#ff4d4d; color:white; border:none; cursor:pointer; font-weight:700;">Logout</button>
+          <button onclick="openSettings()" style="padding:8px 12px; border-radius:6px; border:1px solid #ddd; background:#1B4332; color:#F4A261; cursor:pointer;">Settings</button>
+          <button onclick="logout()" style="padding:8px 12px; border-radius:6px; background:#F4A261; color:#1B4332; border:none; cursor:pointer;">Logout</button>
         </div>
       </div>
+      <div id="student-notification" class="notification-banner"></div>
       <div class="stats-grid">
         <div class="side-panel">
-           <button class="btn-pillar btn-write" style="width:100%; margin-bottom:20px;" onclick="showPage('editor-page')">✏️ NEW ESSAY</button>
-          <h4 style="margin-bottom:10px;">📚 Resources</h4>
+           <button class="btn-pillar btn-write" style=" width: 100%; margin-bottom: 20px; background-color: #2D6A4F; /* A rich, forest green */ color: white; border: none; padding: 15px; border-radius: 8px; font-weight: 800; letter-spacing: 1px; cursor: pointer; box-shadow: 0 4px 15px rgba(45, 106, 79, 0.2); "onclick="showPage('editor-page')">✍ NEW ENTRY</button>
+          <h4 style="margin-bottom:10px;text-align: left;">🌐 Resources</h4>
           <ul style="list-style:none; padding:0; font-size:0.9rem; line-height:2.4;" id="student-resources">
             <li style="color:var(--muted); font-size:0.8rem;">Loading resources…</li>
           </ul>
           <a id="view-more-resources" href="#" onclick="toggleAllResources(event)" style="display:none; font-size:0.8rem; color:var(--deep-green); font-weight:700; text-decoration:none;">View More →</a>
         </div>
         <div class="main-panel">
-          <h4 style="margin:0 0 15px 0;">My Submissions</h4>
+          <h4 style="margin: 0 0 15px 0; text-align: left; font-family: 'Lato', sans-serif; color: var(--deep-green);font-size: 1.3rem;">My Submissions</h4>
           <table class="essay-table">
             <thead>
               <tr><th>Title</th><th>Date</th><th>Status</th></tr>
@@ -310,11 +341,12 @@
       <div style="font-weight:bold; color:var(--deep-green);">Words: <span id="word-num">0</span></div>
     </div>
     <div class="notebook-container">
-      <input type="text" id="essay-title" class="notebook-title" placeholder="ENTER TITLE HERE" onpaste="return false;">
+      <input type="text" id="essay-title" class="notebook-title" placeholder="ENTER TITLE HERE" onpaste="return false;" onkeydown="handleTitleEnter(event)">
       <div class="notebook-paper">
         <textarea id="essay-body" class="notebook-body" placeholder="Start writing your formal theme..." onpaste="return false;" oninput="updateStats()"></textarea>
-      </div>
-      <button class="btn-auth" style="margin-top:20px;" onclick="submitEssay()">SUBMIT ESSAY FOR REVIEW</button>
+        </div>
+    </div>
+      <button class="btn-auth" style="margin-top:20px; width:auto; padding:12px 290px; display:block; margin-left:auto; margin-right:auto;" onclick="submitEssay()">SUBMIT ESSAY FOR REVIEW</button>
     </div>
   </section>
 
@@ -348,27 +380,28 @@
 
   <!-- REVIEWER DASHBOARD -->
   <section id="reviewer-dash" class="page" style="background:#f0f2f1;">
-    <div class="dash-container" style="max-width:1000px;">
+    <div class="dash-container">
       <div class="user-info">
         <div>
-          <h2 id="rev-welcome" style="margin:0; color:var(--deep-green);">Hello, Editor</h2>
+          <h2 id="rev-welcome" style="margin:0; color:var(--deep-green);">Hello, Editor!</h2>
           <label style="font-size:0.7rem; color:var(--muted);"><input type="checkbox" id="rev-avail" checked> Accepting New Essays</label>
         </div>
         <div style="display:flex; gap:10px;">
-          <button onclick="openSettings()" style="background:none; border:1px solid #ccc; border-radius:5px; cursor:pointer; padding:5px 10px;">Settings</button>
-          <button onclick="logout()" style="color:red; background:none; border:none; cursor:pointer; font-weight:bold;">Logout</button>
+          <button onclick="openSettings()" style="padding:8px 12px; border-radius:6px; border:1px solid #ddd; background:#1B4332; color:#F4A261; cursor:pointer;">Settings</button>
+          <button onclick="logout()" style="padding:8px 12px; border-radius:6px; background:#F4A261; color:#1B4332; border:none; cursor:pointer;">Logout</button>
         </div>
       </div>
+      <div id="reviewer-notification" class="notification-banner"></div>
       <div class="stats-grid">
-        <div class="side-panel">
-          <div style="background:var(--deep-green); color:var(--squash); padding:15px; border-radius:10px; text-align:center; margin-bottom:20px;">
+        <div class="side-panel" style="max-width: 280px;">
+          <div style="background:#2D6A4F; color: white; padding:15px; border-radius:10px; text-align:center; margin-bottom:20px;font-size:1.2rem;">
             <small>FINISHED REVIEWS</small><br>
             <span id="finish-count" style="font-size:1.5rem; font-weight:900;">0</span>
           </div>
  
           <!-- RESOURCE MANAGER -->
           <div style="border:1px dashed var(--deep-green); border-radius:8px; padding:15px;">
-            <h5 style="margin:0 0 10px 0; color:var(--deep-green);">📚 Share a Resource</h5>
+            <h5 style="margin:0 0 10px 0; color:var(--deep-green);font-size: 1rem; ">🌐 Share a Resource</h5>
             <input type="text" id="new-link-title" placeholder="Link Title" style="width:100%; margin-bottom:6px; padding:8px; border:1px solid #ddd; border-radius:5px; font-size:0.85rem;">
             <input type="text" id="new-link-url" placeholder="https://..." style="width:100%; margin-bottom:10px; padding:8px; border:1px solid #ddd; border-radius:5px; font-size:0.85rem;">
             <button onclick="publishResource()" style="width:100%; background:var(--squash); border:none; padding:8px; border-radius:5px; font-weight:700; cursor:pointer; color:var(--deep-green); font-size:0.9rem;">Post to Students</button>
@@ -386,7 +419,6 @@
           <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
           <h4 style="color:var(--muted);">Completed Reviews</h4>
           <div id="completed-list"></div>
-        </div>
       </div>
     </div>
   </section>
@@ -494,14 +526,14 @@
     <div style="background:var(--paper); max-width:800px; margin:2rem auto; padding:50px; border-radius:12px; position:relative; box-shadow:0 20px 50px rgba(0,0,0,0.5);">
       <button onclick="document.getElementById('read-modal').style.display='none'" style="position:absolute; top:20px; right:20px; background:none; border:none; font-size:2rem; color:var(--muted); cursor:pointer;">&times;</button>
       <h1 id="full-read-title" style="color:var(--deep-green); margin-bottom: 5px; text-align: center; font-size: 2.5rem;"></h1>
-      <p style="text-align: center; color: var(--muted); border-bottom:2px solid var(--deep-green); padding-bottom:20px; margin-top: 0;">Published on <span id="full-read-date" style="font-weight: bold;"></span></p>
+      <p style="text-align: center; color: var(--muted); border-bottom:2px solid var(--deep-green); padding-bottom:20px; margin-top: 0;">By <b id="full-read-author"></b> · Published on <span id="full-read-date" style="font-weight: bold;"></span></p>
       <div id="full-read-body" style="margin-top: 40px; font-size: 1.15rem; line-height: 1.8; color: var(--ink); white-space: pre-wrap; word-wrap: break-word;"></div>
     </div>
   </div>
 
 </main>
 
-<footer style="padding: 2rem 1rem; text-align: center; background: #f4f7f5; border-top: 1px solid var(--border); margin-top: 2rem;">
+<footer style="padding: 2rem 1rem; text-align: center; background: #f4f7f5; border-top: 1px solid var(--border); margin-top: auto;">
   <p style="color: var(--muted); font-size: 0.85rem; margin: 0;">&copy; 2026 KWADERNO. All rights reserved.</p>
   <p style="margin: 5px 0 0 0;"><a href="mailto:ajarn.zandy@gmail.com" style="color: var(--deep-green); text-decoration: none; font-size: 0.85rem; font-weight: 600;">ajarn.zandy@gmail.com</a></p>
 </footer>
@@ -521,7 +553,7 @@ let currentUser = null;   // Supabase user object
 let currentMeta = null;   // user_metadata shortcut
 let activeEssayId = null;
 let allPublishedEssays = [];
-
+const INDENT = '\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0'; // 12 non-breaking spaces ≈ 0.8in
 // ── NAVIGATION ────────────────────────────────────────────────
 function showPage(pageId) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -533,8 +565,17 @@ function showPage(pageId) {
 
   // Trigger data loads when specific pages open
   if (pageId === 'read') loadPublishedLibrary();
-  if (pageId === 'writer-dash') { fetchUserEssays(); loadStudentResources(); }
-  if (pageId === 'reviewer-dash') { loadTeacherDashboard(); loadTeacherResources(); }
+  if (pageId === 'editor-page') setupNotebook();
+  if (pageId === 'writer-dash') {
+    fetchUserEssays();
+    loadStudentResources();
+    loadStudentNotifications();
+  }
+  if (pageId === 'reviewer-dash') {
+    loadTeacherDashboard();
+    loadTeacherResources();
+    loadReviewerNotifications();
+  }
 }
 
 // ── SIGNUP ────────────────────────────────────────────────────
@@ -652,10 +693,10 @@ function afterLogin(user) {
   const role   = currentMeta.role;
 
   if (role === 'reviewer') {
-    document.getElementById('rev-welcome').innerText = `Hello, ${name}`;
+    document.getElementById('rev-welcome').innerText = `Hello, ${name}!`;
     showPage('reviewer-dash');
   } else {
-    document.getElementById('welcome-msg').innerText = `Welcome, ${name}`;
+    document.getElementById('welcome-msg').innerText = `Welcome, ${name}!`;
     showPage('writer-dash');
   }
 }
@@ -684,10 +725,19 @@ async function submitEssay() {
   if (!currentUser) { alert('You must be logged in.'); return; }
 
   const title = document.getElementById('essay-title').value.trim();
-  const body  = document.getElementById('essay-body').value.trim();
-  const wordCount = body.split(/\s+/).filter(Boolean).length;
+  const rawBody = document.getElementById('essay-body').value;
+
+  // Strip non-breaking spaces and trim each line
+  const body = rawBody
+    .split('\n')
+    .map(line => line.replace(/[\u00A0\s]+/g, ' ').trim())
+    .filter(line => line.length > 0)
+    .join('\n');
 
   if (!title) { alert('Please enter a title.'); return; }
+  if (!body)  { alert('Please write something before submitting.'); return; }
+
+  const wordCount = body.split(/\s+/).filter(Boolean).length;
   if (wordCount < 50) { alert(`Your essay is only ${wordCount} words. Please write at least 50 words before submitting.`); return; }
 
   const { error } = await sb.from('essays').insert([{
@@ -696,7 +746,6 @@ async function submitEssay() {
     body,
     status: 'submitted'
   }]);
-
   if (error) {
     alert('Submit failed: ' + error.message);
     return;
@@ -754,7 +803,7 @@ async function openStudentEssay(essayId, status) {
  
   await sb.from('essays').update({ status: 'rewriting' }).eq('id', essayId);
  
-  const { data: essay, error } = await sb.from('essays').select('*').eq('id', essayId).single();
+  const { data: essay, error } = await sb.from('essays').select('*, profiles!student_id(username, full_name)').eq('id', essayId).single();
   if (error) { alert('Could not load essay.'); return; }
  
   activeEssayId = essayId;
@@ -764,13 +813,18 @@ async function openStudentEssay(essayId, status) {
   document.getElementById('view-teacher-note').innerText = essay.teacher_notes || 'No general notes provided.';
  
   // LEFT panel: teacher's marked-up correction (read-only)
-  document.getElementById('view-corrected-content').innerHTML = essay.corrected_content || essay.body || '';
  
-  // RIGHT panel: pre-fill with the ORIGINAL submission body (plain text)
-  // We strip HTML tags so student gets clean text to rewrite from
-  const originalText = (essay.body || '').replace(/<[^>]*>/g, '');
-  document.getElementById('student-rewrite-body').value = originalText;
+  const corrPanel = document.getElementById('view-corrected-content');
+  corrPanel.innerHTML = essay.corrected_content
+    ? essay.corrected_content
+    : toHTML(essay.body);
+  corrPanel.classList.add('essay-content');
  
+  // RIGHT panel: pre-fill with clean original text, one paragraph per line
+  const cleanBody = (essay.body || '').replace(/<[^>]*>/g, '');
+  document.getElementById('student-rewrite-body').value = cleanBody;
+  document.getElementById('student-rewrite-body').classList.add('essay-content');
+
   document.getElementById('feedback-modal').style.display = 'block';
   fetchUserEssays();
 }
@@ -798,7 +852,8 @@ async function publishEssay() {
  
   const { error } = await sb.from('essays').update({
     status: 'published',
-    body:   polished
+    body:   polished,
+    published_at: new Date().toISOString()
   }).eq('id', activeEssayId);
  
   if (error) { alert('Publish failed: ' + error.message); return; }
@@ -809,28 +864,40 @@ async function publishEssay() {
 }
 
 async function viewPublishedEssay(essayId) {
-  const { data: essay, error } = await sb.from('essays').select('*').eq('id', essayId).single();
+  const { data: essay, error } = await sb.from('essays').select('*, profiles!student_id(username, full_name)').eq('id', essayId).single();
   if (error) { alert('Could not load essay.'); return; }
 
   const win = window.open('', '_blank');
+ // Convert plain text to paragraphs for the print window
+  const printBody = (essay.body || '')
+    .replace(/<[^>]*>/g, '')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .map(line => `<p>${line}</p>`)
+    .join('');
+
   win.document.write(`
     <!DOCTYPE html>
     <html>
     <head>
       <title>${essay.title}</title>
       <style>
-        body { font-family: Georgia, serif; max-width: 800px; margin: 60px auto; padding: 40px; color: #1f1f1f; line-height: 1.8; }
-        h1 { text-align: center; color: #1B4332; border-bottom: 2px solid #1B4332; padding-bottom: 15px; }
-        .meta { text-align: center; color: #888; margin-bottom: 40px; font-size: 0.9rem; }
-        .body { font-size: 1.1rem; white-space: pre-wrap; }
+        body { font-family: Georgia, serif; max-width: 800px; margin: 0in auto; padding: 20px; color: #1f1f1f; line-height: 1.8; }
+        h1 { text-align: center; color: #1B4332; border-bottom: 1px solid #1B4332; padding-bottom: -1.0px; margin-bottom: 0.1in; }
+        .meta { text-align: center; color: #888; margin: 0.5px 0; font-size: 0.9rem; }
+        .meta:last-of-type { margin-bottom: 0.2in; }
+        .body { font-size: 1.1rem; }
+        .essay-content p { text-indent: 1in; margin: 0; line-height: 2.5rem; font-family: 'Palatino Linotype', 'Palatino', serif; font-size: 1.1rem; }
         .print-btn { display: block; margin: 30px auto; padding: 10px 30px; background: #1B4332; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; }
         @media print { .print-btn { display: none; } }
       </style>
     </head>
     <body>
       <h1>${essay.title}</h1>
+      <p class="meta">By <b>${essay.profiles?.full_name || essay.profiles?.username || 'Anonymous'}</b></p>
       <p class="meta">Published on ${new Date(essay.created_at).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' })}</p>
-      <div class="body">${essay.body}</div>
+      <div class="body essay-content">${toHTML(essay.body)}</div>
       <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
     </body>
     </html>
@@ -909,10 +976,19 @@ async function openReviewEditor(essayId) {
 
   activeEssayId = essayId;
   document.getElementById('editing-title').innerText = `Proofreading: ${essay.title}`;
-  document.getElementById('student-original-content').innerText = essay.body || '';
+
+  const origPanel = document.getElementById('student-original-content');
+  origPanel.innerHTML = toHTML(essay.body);
+  origPanel.classList.add('essay-content');
 
   const box = document.getElementById('teacher-correction-content');
-  box.innerHTML = essay.corrected_content || essay.body || '';
+  if (essay.corrected_content) {
+    // Already been marked up by teacher before — preserve the HTML
+    box.innerHTML = essay.corrected_content;
+  } else {
+    // Fresh essay — load as plain text to preserve indents and newlines
+    box.innerHTML = toHTML(essay.body);
+  }
 
   document.getElementById('teacher-comments').value = essay.teacher_notes || '';
 
@@ -943,7 +1019,7 @@ async function loadPublishedLibrary() {
 
   const { data, error } = await sb
     .from('essays')
-    .select('*')
+    .select('*, profiles!student_id(username, full_name)')
     .eq('status', 'published')
     .order('created_at', { ascending: false });
 
@@ -959,21 +1035,19 @@ async function loadPublishedLibrary() {
 
 function renderLibrary(essays) {
   const listEl = document.getElementById('essay-list');
-
   if (!essays || essays.length === 0) {
     listEl.innerHTML = '<p style="text-align:center; color:var(--muted);">No published essays yet. Be the first!</p>';
     return;
   }
-
   listEl.innerHTML = essays.map(e => {
-    const date    = new Date(e.created_at).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
-    const preview = (e.body || '').replace(/<[^>]*>/g, '').substring(0, 150);
+    const date = new Date(e.published_at || e.created_at).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+   const preview = (e.body || '').replace(/<[^>]*>/g, '').replace(/[\u00A0]/g, ' ').substring(0, 150);
     return `
       <div class="essay-card">
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
           <div>
             <h3 style="margin:0 0 5px 0; color:var(--deep-green);">${e.title}</h3>
-            <span style="font-size:0.8rem; color:var(--muted);">Published on <b>${date}</b></span>
+           <span style="font-size:0.8rem; color:var(--muted);">By <b>${e.profiles?.username || 'Anonymous'}</b> · Published on <b>${date}</b></span>
           </div>
           <div style="background:var(--paper); padding:4px 10px; border-radius:20px; border:1px solid var(--border); font-size:0.75rem; font-weight:700; color:var(--deep-green); white-space:nowrap;">
             👁️ ${e.views || 0} Views
@@ -993,23 +1067,30 @@ function handleSearch(query) {
 
 function sortEssays(val) {
   const sorted = [...allPublishedEssays];
-  if (val === 'oldest') sorted.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+  if (val === 'oldest') sorted.sort((a,b) => new Date(a.published_at||a.created_at) - new Date(b.published_at||b.created_at));
   else if (val === 'views') sorted.sort((a,b) => (b.views||0) - (a.views||0));
-  else sorted.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+  else sorted.sort((a,b) => new Date(b.published_at||b.created_at) - new Date(a.published_at||a.created_at));
   renderLibrary(sorted);
 }
 
 async function readFullEssay(essayId) {
-  const { data: essay, error } = await sb.from('essays').select('*').eq('id', essayId).single();
+  const { data: essay, error } = await sb.from('essays').select('*, profiles!student_id(username, full_name)').eq('id', essayId).single();
   if (error) { alert('Could not load essay.'); return; }
 
   // Increment view count
-  await sb.from('essays').update({ views: (essay.views || 0) + 1 }).eq('id', essayId);
+  // Only increment view count if reader is not the author
+  if (!currentUser || currentUser.id !== essay.student_id) {
+    await sb.from('essays').update({ views: (essay.views || 0) + 1 }).eq('id', essayId);
+  }
 
   const date = new Date(essay.created_at).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
   document.getElementById('full-read-title').innerText = essay.title;
   document.getElementById('full-read-date').innerText  = date;
-  document.getElementById('full-read-body').innerHTML  = essay.body || '';
+  document.getElementById('full-read-author').innerText = essay.profiles?.username || 'Anonymous';
+
+  const readPanel = document.getElementById('full-read-body');
+  readPanel.innerHTML = toHTML(essay.body);
+  readPanel.classList.add('essay-content');
 
   document.getElementById('read-modal').style.display = 'block';
 
@@ -1069,6 +1150,7 @@ async function updatePassword() {
   msg.innerHTML = '<p class="success-msg">✅ Password updated!</p>';
   document.getElementById('new-pass').value = '';
   document.getElementById('confirm-new-pass').value = '';
+  setTimeout(() => closeSettings(), 1500);
 }
 // ── RESOURCES: STATE ──────────────────────────────────────────
 let allStudentResources = [];
@@ -1103,7 +1185,14 @@ function renderStudentResources() {
     : allStudentResources.slice(0, 5);
  
   ul.innerHTML = visible.map(r => `
-    <li>🔗 <a href="${r.url}" target="_blank" rel="noopener noreferrer">${r.title}</a></li>
+    <li style="margin-bottom:6px;">
+      <a href="${r.url}" target="_blank" rel="noopener noreferrer"
+         style="display:block; padding:8px 10px; border-radius:6px; border:1px solid var(--border); text-decoration:none; color:var(--deep-green); font-size:0.85rem; transition:background 0.2s;"
+         onmouseover="this.style.background='var(--squash)'"
+         onmouseout="this.style.background='transparent'">
+        🔗 ${r.title}
+      </a>
+    </li>
   `).join('');
  
   if (allStudentResources.length > 5) {
@@ -1199,6 +1288,129 @@ async function deleteResource(resourceId) {
   }
  
   loadTeacherResources(); // refresh immediately
+}
+// ── NOTEBOOK: ENTER ON TITLE MOVES TO BODY ───────────────────
+function handleTitleEnter(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const body = document.getElementById('essay-body');
+    body.focus();
+    if (body.value === '') {
+      body.value = INDENT;
+      body.setSelectionRange(body.value.length, body.value.length);
+    }
+  }
+}
+// ── NOTIFICATIONS: STUDENT ────────────────────────────────────
+async function loadStudentNotifications() {
+  if (!currentUser) return;
+
+  const { data, error } = await sb
+    .from('essays')
+    .select('id')
+    .eq('student_id', currentUser.id)
+    .in('status', ['returned', 'rewriting']);
+
+  if (error) { console.error('studentNotif:', error); return; }
+
+  const banner = document.getElementById('student-notification');
+  const count  = data ? data.length : 0;
+
+  if (count === 0) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  const grammar = count === 1
+    ? 'YOUR ESSAY HAS BEEN RETURNED.'
+    : `YOUR ${count} ESSAYS HAVE BEEN RETURNED.`;
+
+  banner.innerHTML = `<span>${grammar}</span>`;
+  banner.style.display = 'block';
+}
+
+// ── NOTIFICATIONS: TEACHER ────────────────────────────────────
+async function loadReviewerNotifications() {
+  if (!currentUser) return;
+
+  const { data, error } = await sb
+    .from('essays')
+    .select('id')
+    .eq('teacher_id', currentUser.id)
+    .in('status', ['assigned', 'submitted']);
+
+  if (error) { console.error('reviewerNotif:', error); return; }
+
+  const banner = document.getElementById('reviewer-notification');
+  const count  = data ? data.length : 0;
+
+  if (count === 0) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  const grammar = count === 1
+    ? '1 NEW ESSAY HAS BEEN ASSIGNED TO YOU.'
+    : `${count} NEW ESSAYS HAVE BEEN ASSIGNED TO YOU.`;
+
+  banner.innerHTML = `<span>${grammar}</span>`;
+  banner.style.display = 'block';
+}
+// ── NOTEBOOK: SETUP (called when editor page opens) ───────────
+function setupNotebook() {
+  const body = document.getElementById('essay-body');
+  if (!body) return;
+
+  // Clear the editor for a fresh essay
+  body.value = '';
+  document.getElementById('essay-title').value = '';
+  document.getElementById('word-num').innerText = '0';
+
+  // Remove old listeners by cloning the element
+  const fresh = body.cloneNode(true);
+  body.parentNode.replaceChild(fresh, body);
+
+  // Set first indent on first keystroke
+  fresh.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && fresh.value === '') {
+      fresh.value = INDENT;
+      fresh.setSelectionRange(fresh.value.length, fresh.value.length);
+    }
+  }, { once: true });
+
+  // Handle Enter key — new paragraph with indent
+  fresh.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const start = fresh.selectionStart;
+      const end   = fresh.selectionEnd;
+      fresh.value = fresh.value.substring(0, start) + '\n' + INDENT + fresh.value.substring(end);
+      const newPos = start + 1 + INDENT.length;
+      fresh.setSelectionRange(newPos, newPos);
+      updateStats();
+    }
+  });
+
+  // Block paste
+  fresh.addEventListener('paste', (e) => e.preventDefault());
+
+  // Set initial indent and focus
+  fresh.value = INDENT;
+  fresh.setSelectionRange(fresh.value.length, fresh.value.length);
+  fresh.focus();
+}
+// ── CONVERT PLAIN TEXT TO PARAGRAPHS ─────────────────────────
+function toHTML(text) {
+  if (!text) return '';
+  // If already HTML (teacher's corrections), return as is
+  if (text.trim().startsWith('<')) return text;
+  // Split on newlines, filter empty lines, wrap each in <p>
+  return text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .map(line => `<p>${line}</p>`)
+    .join('');
 }
 </script>
 </body>
