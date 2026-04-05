@@ -273,7 +273,7 @@
   <section id="login-page" class="page">
     <div class="auth-container">
       <h2 style="color:var(--deep-green)">Student Login</h2>
-      <input type="text" id="login-user" placeholder="Username">
+      <input type="email" id="login-user" placeholder="Email Address">
       <input type="password" id="login-pass" placeholder="Password">
       <div id="login-msg"></div>
       <button class="btn-auth" onclick="performLogin(false)">Login</button>
@@ -287,6 +287,7 @@
       <h2 style="color:var(--deep-green)">Create Student Account</h2>
       <input type="text" id="reg-name" placeholder="Full Name">
       <input type="text" id="reg-user" placeholder="Username (no spaces)">
+      <input type="email" id="reg-email" placeholder="Email Address">
       <input type="password" id="reg-pass" placeholder="Password (min 6 chars)">
       <input type="password" id="reg-confirm" placeholder="Confirm Password">
       <div id="signup-msg"></div>
@@ -354,7 +355,7 @@
   <section id="reviewer-login" class="page">
     <div class="auth-container">
       <h2 style="color:var(--deep-green)">Reviewer Portal</h2>
-      <input type="text" id="rev-login-user" placeholder="Username">
+      <input type="email" id="rev-login-user" placeholder="Email Address">
       <input type="password" id="rev-login-pass" placeholder="Password">
       <div id="rev-login-msg"></div>
       <button class="btn-auth" onclick="performLogin(true)">Login as Reviewer</button>
@@ -368,7 +369,9 @@
       <h2 style="color:var(--deep-green)">Editor Application</h2>
       <input type="text" id="rev-reg-name" placeholder="Full Name">
       <input type="text" id="rev-reg-user" placeholder="Username (no spaces)">
+      <input type="email" id="rev-reg-email" placeholder="Email Address">
       <input type="password" id="rev-reg-pass" placeholder="Password (min 6 chars)">
+      <input type="password" id="rev-reg-confirm" placeholder="Confirm Password">
       <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
       <input type="text" id="rev-prof" placeholder="Profession (e.g. English Teacher)">
       <input type="number" id="rev-exp" placeholder="Years of Experience">
@@ -580,20 +583,26 @@ function showPage(pageId) {
 
 // ── SIGNUP ────────────────────────────────────────────────────
 async function performSignup(isTeacher) {
-  const prefix    = isTeacher ? 'rev-' : '';
-  const nameEl    = document.getElementById(`${prefix}reg-name`);
-  const userEl    = document.getElementById(`${prefix}reg-user`);
-  const passEl    = document.getElementById(`${prefix}reg-pass`);
-  const msgEl     = document.getElementById(isTeacher ? 'rev-signup-msg' : 'signup-msg');
+  const prefix   = isTeacher ? 'rev-' : '';
+  const nameEl   = document.getElementById(`${prefix}reg-name`);
+  const userEl   = document.getElementById(`${prefix}reg-user`);
+  const emailEl  = document.getElementById(`${prefix}reg-email`);
+  const passEl   = document.getElementById(`${prefix}reg-pass`);
+  const msgEl    = document.getElementById(isTeacher ? 'rev-signup-msg' : 'signup-msg');
 
   const name     = nameEl.value.trim();
   const username = userEl.value.trim().toLowerCase().replace(/\s+/g, '');
+  const email    = emailEl.value.trim().toLowerCase();
   const password = passEl.value;
 
   msgEl.innerHTML = '';
 
-  if (!name || !username || !password) {
+  if (!name || !username || !email || !password) {
     msgEl.innerHTML = '<p class="error-msg">Please fill in all required fields.</p>';
+    return;
+  }
+  if (!email.includes('@')) {
+    msgEl.innerHTML = '<p class="error-msg">Please enter a valid email address.</p>';
     return;
   }
   if (password.length < 6) {
@@ -608,13 +617,10 @@ async function performSignup(isTeacher) {
     }
   }
 
-  // Supabase requires an email format; we fake one from the username
-  const fakeEmail = `${username}@kwaderno.app`;
-
   const metadata = {
-    full_name: name,
-    username:  username,
-    role:      isTeacher ? 'reviewer' : 'student'
+    full_name:  name,
+    username:   username,
+    role:       isTeacher ? 'reviewer' : 'student'
   };
   if (isTeacher) {
     metadata.profession = document.getElementById('rev-prof').value.trim();
@@ -624,9 +630,12 @@ async function performSignup(isTeacher) {
   msgEl.innerHTML = '<p style="color:var(--muted); font-size:0.85rem;">Creating account…</p>';
 
   const { data, error } = await sb.auth.signUp({
-    email: fakeEmail,
+    email,
     password,
-    options: { data: metadata }
+    options: {
+      data: metadata,
+      emailRedirectTo: 'https://ajarnzandy-blip.github.io/kwaderno'
+    }
   });
 
   if (error) {
@@ -634,8 +643,7 @@ async function performSignup(isTeacher) {
     return;
   }
 
-  msgEl.innerHTML = '<p class="success-msg">✅ Account created! Redirecting to login…</p>';
-  setTimeout(() => showPage(isTeacher ? 'reviewer-login' : 'login-page'), 1500);
+  msgEl.innerHTML = '<p class="success-msg">✅ Account created! Please check your email to confirm your account before logging in.</p>';
 }
 
 // ── LOGIN ─────────────────────────────────────────────────────
@@ -645,21 +653,23 @@ async function performLogin(isTeacher) {
   const passEl   = document.getElementById(`${prefix}login-pass`);
   const msgEl    = document.getElementById(isTeacher ? 'rev-login-msg' : 'login-msg');
 
-  const username = userEl.value.trim().toLowerCase().replace(/\s+/g, '');
+  const email    = userEl.value.trim().toLowerCase();
   const password = passEl.value;
 
   msgEl.innerHTML = '';
 
-  if (!username || !password) {
-    msgEl.innerHTML = '<p class="error-msg">Please enter your username and password.</p>';
+  if (!email || !password) {
+    msgEl.innerHTML = '<p class="error-msg">Please enter your email and password.</p>';
+    return;
+  }
+  if (!email.includes('@')) {
+    msgEl.innerHTML = '<p class="error-msg">Please enter a valid email address.</p>';
     return;
   }
 
-  const fakeEmail = `${username}@kwaderno.app`;
   msgEl.innerHTML = '<p style="color:var(--muted); font-size:0.85rem;">Logging in…</p>';
 
-  const { data, error } = await sb.auth.signInWithPassword({ email: fakeEmail, password });
-
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) {
     msgEl.innerHTML = `<p class="error-msg">Login failed: ${error.message}</p>`;
     return;
