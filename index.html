@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@900&display=swap" rel="stylesheet">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kwaderno — Write like it matters.</title>
+  <title>Kwaderno — Your digital writing companion.</title>
   <style>
     :root {
       --deep-green: #1B4332;
@@ -162,7 +162,7 @@
     .status-pill { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; background: #eee; }
     .reviewer-card { background: white; padding: 15px 20px; border-radius: 8px; border-left: 5px solid var(--deep-green); margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; transition: 0.2s; }
     .reviewer-card:hover { border-color: var(--squash); transform: translateY(-2px); }
-    .review-split { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1200px; margin: 0 auto; }
+    .review-split { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1200px; margin: 0 auto; } @media (max-width: 768px) { .review-split { grid-template-columns: 1fr; } }
     .original-text-view { background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #ddd; line-height: 1.8; white-space: pre-wrap; min-height: 400px; }
     .correction-input { width: 100%; height: 500px; padding: 20px; border-radius: 8px; border: 2px solid var(--deep-green); font-family: inherit; font-size: 1rem; resize: none; outline: none; }
     .teacher-notes { width: 100%; margin-top: 15px; padding: 10px; border: 1px dashed #999; border-radius: 6px; font-family: inherit; }
@@ -194,6 +194,14 @@
   font-style: italic;
   transition: 0.3s;
 }
+.paste-toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:var(--deep-gray); color:white; padding:10px 20px; border-radius:8px; font-size:0.85rem; font-family:'Lato',sans-serif; z-index:99999; opacity:0; transition:opacity 0.3s; pointer-events:none; }
+.paste-toast.show { opacity:1; }
+.draft-banner { display:none; background:#fffbe6; border:1px solid #f0d080; border-radius:8px; padding:10px 16px; margin-bottom:12px; font-size:0.85rem; font-family:'Lato',sans-serif; color:#856404; display:flex; justify-content:space-between; align-items:center; }
+.draft-banner span { flex:1; }
+.draft-banner-btns { display:flex; gap:8px; }
+.draft-banner-btns button { padding:5px 12px; border-radius:6px; font-size:0.8rem; font-weight:700; cursor:pointer; border:none; }
+.btn-restore { background:var(--deep-green); color:white; }
+.btn-discard { background:#eee; color:#666; }
   </style>
 </head>
 <body>
@@ -220,11 +228,10 @@
   <span class="typing-demo">Your digital writing companion.</span>
   <span class="cursor">&nbsp;</span>
 </div>
-  <button id="nav-btn" class="nav-action" onclick="showPage('home')" style="display: flex; align-items: center; gap: 8px;">
+  <button id="nav-btn" class="nav-action" onclick="goBack()" style="display: none; align-items: center; gap: 8px;">
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
     <path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>
   </svg>
-  
   <span style="font-weight: 700; letter-spacing: 0.5px;">BACK</span>
 </button>
 </header>
@@ -343,7 +350,20 @@
           <a id="view-more-resources" href="#" onclick="toggleAllResources(event)" style="display:none; font-size:0.8rem; color:var(--deep-green); font-weight:700; text-decoration:none;">View More →</a>
         </div>
         <div class="main-panel">
-          <h4 style="margin: 0 0 15px 0; text-align: left; font-family: 'Lato', sans-serif; color: var(--deep-green);font-size: 1.3rem;">My Submissions</h4>
+          <h4 style="margin: 0 0 10px 0; text-align: left; font-family: 'Lato', sans-serif; color: var(--deep-green);font-size: 1.3rem;">My Submissions</h4>
+            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:15px; align-items:center;">
+                <span style="font-size:0.72rem; background:#eee; padding:3px 10px; border-radius:12px;">📤 Submitted</span>
+                <span style="font-size:1.5rem; color:#999;">›</span>
+                <span style="font-size:0.72rem; background:#eee; padding:3px 10px; border-radius:12px;">📋 Assigned</span>
+                <span style="font-size:1.5rem; color:#999;">›</span>
+                <span style="font-size:0.72rem; background:#eee; padding:3px 10px; border-radius:12px;">🔍 Reviewing</span>
+                <span style="font-size:1.5rem; color:#999;">›</span>
+                <span style="font-size:0.72rem; background:#fffbe6; padding:3px 10px; border-radius:12px;">✉️ Returned</span>
+                <span style="font-size:1.5rem; color:#999;">›</span>
+                <span style="font-size:0.72rem; background:#f0f7f4; padding:3px 10px; border-radius:12px;">✏️ Rewriting</span>
+                <span style="font-size:1.5rem; color:#999;">›</span>
+                <span style="font-size:0.72rem; background:#d4edda; padding:3px 10px; border-radius:12px;">✅ Published</span>
+            </div>
           <table class="essay-table">
             <thead>
               <tr><th>Title</th><th>Date</th><th>Status</th></tr>
@@ -357,21 +377,28 @@
 
   <!-- EDITOR -->
   <section id="editor-page" class="page" style="background:#d1d8d4;">
-    <div class="editor-toolbar">
+    <div id="draft-banner" class="draft-banner" style="display:none; max-width:800px; margin:10px auto 0 auto;">
+  <span id="draft-banner-msg">You have an unsaved draft.</span>
+  <div class="draft-banner-btns">
+    <button class="btn-restore" onclick="restoreDraft()">Restore</button>
+    <button class="btn-discard" onclick="discardDraft()">Discard</button>
+  </div>
+</div>
+<div class="editor-toolbar">
       <select id="font-style" onchange="updateFontStyle()" style="padding:5px; border-radius:4px;">
         <option value="block">Block Writing</option>
         <option value="cursive">Cursive Writing</option>
       </select>
       <span id="autosave-status" class="autosave-indicator">Draft auto-saves every 30s</span>
-      <div style="font-weight:bold; color:var(--deep-green);">Words: <span id="word-num">0</span></div>
+      <div style="font-weight:bold; color:var(--deep-green);">Words: <span id="word-num">0</span><span style="font-weight:400; color:var(--muted); font-size:0.8rem;"> / 900</span></div>
     </div>
     <div class="notebook-container">
-      <input type="text" id="essay-title" class="notebook-title" placeholder="ENTER TITLE HERE" onpaste="return false;" onkeydown="handleTitleEnter(event)">
+      <input type="text" id="essay-title" class="notebook-title" placeholder="ENTER TITLE HERE" onpaste="showPasteToast(event)" onkeydown="handleTitleEnter(event)">
       <div class="notebook-paper">
-        <textarea id="essay-body" class="notebook-body" placeholder="Start writing your formal theme..." onpaste="return false;" oninput="updateStats()"></textarea>
+        <textarea id="essay-body" class="notebook-body" placeholder="Start writing your formal theme..." onpaste="showPasteToast(event)" oninput="updateStats()"></textarea>
         </div>
     </div>
-     <button class="btn-auth" style="margin-top:20px; width:auto; padding:12px 290px; display:block; margin-left:auto; margin-right:auto; white-space:nowrap;" onclick="submitEssay()">SUBMIT ESSAY FOR REVIEW</button>
+     <button class="btn-auth" style="margin-top:20px; width:100%; max-width:700px; display:block; margin-left:auto; margin-right:auto;" onclick="submitEssay()">SUBMIT ESSAY FOR REVIEW</button>
   </section>
 
   <!-- REVIEWER LOGIN -->
@@ -426,7 +453,7 @@
           <label style="font-size:0.7rem; color:var(--muted);"><input type="checkbox" id="rev-avail" checked> Accepting New Essays</label>
         </div>
         <div style="display:flex; gap:10px;">
-          <button id="admin-btn" onclick="showPage('admin-panel'); loadAdminPanel();" style="display:none; padding:8px 12px; border-radius:6px; background:#607d8b; color:white; border:none; cursor:pointer; font-weight:700;">⚙️ ADMIN</button>
+          <button id="admin-btn" onclick="if(currentMeta?.role==='admin'){showPage('admin-panel');loadAdminPanel();}" style="display:none; padding:8px 12px; border-radius:6px; background:#607d8b; color:white; border:none; cursor:pointer; font-weight:700;">⚙️ ADMIN</button>
           <button onclick="openSettings()" style="padding:8px 12px; border-radius:6px; border:1px solid #ddd; background:#1B4332; color:#F4A261; cursor:pointer;">Settings</button>
           <button onclick="logout()" style="padding:8px 12px; border-radius:6px; background:#F4A261; color:#1B4332; border:none; cursor:pointer;">Logout</button>
         </div>
@@ -611,7 +638,7 @@
           <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
             
             <!-- Published -->
-            <<div>
+            <div>
             <div style="background:#d4edda; padding:8px 12px; border-radius:6px; margin-bottom:8px; font-size:0.8rem; font-weight:700; color:#155724; text-align:center;">✅ PUBLISHED ESSAYS</div>
             <div id="admin-essays-published" style="max-height:500px; overflow-y:auto; display:grid; gap:6px;">
               <p style="color:var(--muted); font-size:0.8rem;">Loading...</p>
@@ -741,12 +768,26 @@ let activeEssayId = null;
 let allPublishedEssays = [];
 const INDENT = '\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0'; // 12 non-breaking spaces ≈ 0.8in
 // ── NAVIGATION ────────────────────────────────────────────────
-function showPage(pageId) {
+// Keep track of where the user has been
+let navigationStack = ['home'];
+
+// Updated showPage with a 'saveToHistory' flag (defaults to true)
+function showPage(pageId, saveToHistory = true) {
+  const currentActivePage = document.querySelector('.page.active');
+
+  // If we are moving to a new page, push the OLD page ID to the stack
+  if (saveToHistory && currentActivePage && currentActivePage.id !== pageId) {
+    navigationStack.push(currentActivePage.id);
+  }
+
+  // --- Your original logic starts here ---
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const target = document.getElementById(pageId);
   if (!target) { console.warn('No page with id:', pageId); return; }
   target.classList.add('active');
-  document.getElementById('nav-btn').style.display = (pageId === 'home') ? 'none' : 'block';
+  
+  // Note: Changed 'block' to 'flex' so your SVG and text align correctly
+  document.getElementById('nav-btn').style.display = (pageId === 'home') ? 'none' : 'flex';
   window.scrollTo(0, 0);
 
   // Trigger data loads when specific pages open
@@ -770,8 +811,20 @@ function showPage(pageId) {
       loadReviewerNotifications()
     ]);
   }
+  // --- Your original logic ends here ---
 }
 
+// New function for your Back button
+function goBack() {
+  if (navigationStack.length > 0) {
+    // Get the last page visited
+    const previousPageId = navigationStack.pop();
+    // Go there, but tell showPage NOT to save this action to history
+    showPage(previousPageId, false);
+  } else {
+    showPage('home');
+  }
+}
 // ── SIGNUP ────────────────────────────────────────────────────
 async function performSignup(isTeacher) {
   const prefix   = isTeacher ? 'rev-' : '';
@@ -842,6 +895,7 @@ async function performLogin(isTeacher) {
   const userEl   = document.getElementById(`${prefix}login-user`);
   const passEl   = document.getElementById(`${prefix}login-pass`);
   const msgEl    = document.getElementById(isTeacher ? 'rev-login-msg' : 'login-msg');
+  const btnEl    = document.querySelector(`#${isTeacher ? 'reviewer-login' : 'login-page'} .btn-auth`);
 
   const email    = userEl.value.trim().toLowerCase();
   const password = passEl.value;
@@ -857,10 +911,13 @@ async function performLogin(isTeacher) {
     return;
   }
 
-  msgEl.innerHTML = '<p style="color:var(--muted); font-size:0.85rem;">Logging in…</p>';
-
+  // Disable button and show spinner
+  if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '<span class="spinner"></span> Logging in…'; }
+  msgEl.innerHTML = '';
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) {
+    // Restore button on failure
+    if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = isTeacher ? 'Login as Reviewer' : 'Login'; }
     msgEl.innerHTML = `<p class="error-msg">Login failed: ${error.message}</p>`;
     return;
   }
@@ -876,6 +933,7 @@ async function performLogin(isTeacher) {
   if (!isTeacher && role === 'reviewer') {
     msgEl.innerHTML = '<p class="error-msg">Reviewers must use the Reviewer Portal login.</p>';
     await sb.auth.signOut();
+    if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = isTeacher ? 'Login as Reviewer' : 'Login'; }
     return;
   }
 
@@ -893,6 +951,7 @@ async function performLogin(isTeacher) {
   if (profile?.banned) {
     msgEl.innerHTML = `<p class="error-msg">🚫 Your account has been suspended: <b>${profile.ban_reason || 'Violation of community guidelines'}</b>. Please contact the administrator.</p>`;
     await sb.auth.signOut();
+    if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = isTeacher ? 'Login as Reviewer' : 'Login'; }
     return;
   }
 
@@ -955,8 +1014,8 @@ async function submitEssay() {
   if (!body)  { alert('Please write something before submitting.'); return; }
 
   const wordCount = body.split(/\s+/).filter(Boolean).length;
-  if (wordCount < 50) { alert(`Your essay is only ${wordCount} words. Please write at least 50 words before submitting.`); return; }
-
+  if (wordCount < 50)  { alert(`Your essay is only ${wordCount} words. Please write at least 50 words before submitting.`); return; }
+  if (wordCount > 900) { alert(`Your essay is ${wordCount} words. Please keep it under 900 words before submitting.`); return; }
   const { error } = await sb.from('essays').insert([{
     student_id: currentUser.id,
     title,
@@ -964,7 +1023,7 @@ async function submitEssay() {
     status: 'submitted'
   }]);
   if (error) {
-    alert('Submit failed: ' + error.message);
+    alert(error.message.includes('limit') ? error.message : 'Submit failed: ' + error.message);
     return;
   }
 
@@ -1068,6 +1127,13 @@ async function publishEssay() {
     alert(`Your rewrite is only ${wordCount} words. Please write at least 50 words before publishing.`);
     return;
   }
+
+  const original = (document.getElementById('view-corrected-content')?.innerText || '').trim().replace(/\s+/g, ' ');
+  const rewrite  = polished.trim().replace(/\s+/g, ' ');
+  if (original && original === rewrite) {
+    alert('Your rewrite appears unchanged. Please incorporate your teacher\'s corrections before publishing.');
+    return;
+  }
  
   if (!confirm('Are you sure you want to publish? This cannot be undone.')) return;
  
@@ -1120,6 +1186,8 @@ async function viewPublishedEssay(essayId) {
       <p class="meta">Published on ${new Date(essay.created_at).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' })}</p>
       <div class="body essay-content">${toHTML(essay.body)}</div>
       <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+<div id="paste-toast" class="paste-toast">✋ Paste is disabled — Kwaderno encourages original writing.</div>
+
     </body>
     </html>
   `);
@@ -1200,7 +1268,7 @@ async function openReviewEditor(essayId) {
   document.getElementById('editing-title').innerText = `Proofreading: ${essay.title}`;
 
   const origPanel = document.getElementById('student-original-content');
-  origPanel.innerHTML = toHTML(essay.body);
+  origPanel.innerHTML = DOMPurify.sanitize(toHTML(essay.body));
   origPanel.classList.add('essay-content');
 
   const box = document.getElementById('teacher-correction-content');
@@ -1260,13 +1328,13 @@ function renderLibrary(essays) {
     return;
   }
   listEl.innerHTML = essays.map(e => {
-    const date = new Date(e.published_at || e.created_at).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
-   const preview = (e.body || '').replace(/<[^>]*>/g, '').replace(/[\u00A0]/g, ' ').substring(0, 150);
+   const date = new Date(e.published_at || e.created_at).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+   const preview = DOMPurify.sanitize((e.body || '').replace(/<[^>]*>/g, '').replace(/[\u00A0]/g, ' ').substring(0, 150));
     return `
       <div class="essay-card">
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
           <div>
-            <h3 style="margin:0 0 5px 0; color:var(--deep-green);">${e.title}</h3>
+            <h3 style="margin:0 0 5px 0; color:var(--deep-green);">${DOMPurify.sanitize(e.title)}</h3>
            <span style="font-size:0.8rem; color:var(--muted);">By <b>${e.profiles?.username || 'Anonymous'}</b> · Published on <b>${date}</b></span>
           </div>
           <div data-essay-id="${e.id}" style="background:var(--paper); padding:4px 10px; border-radius:20px; border:1px solid var(--border); font-size:0.75rem; font-weight:700; color:var(--deep-green); white-space:nowrap;">
@@ -1315,11 +1383,13 @@ async function readFullEssay(essayId) {
   document.getElementById('read-modal').style.display = 'block';
 
 // Update cached views and re-render the card count live
-  const entry = allPublishedEssays.find(e => e.id === essayId);
-  if (entry) {
-    entry.views = (entry.views || 0) + 1;
-    const viewBadges = document.querySelectorAll(`[data-essay-id="${essayId}"]`);
-    viewBadges.forEach(badge => badge.innerText = `👁️ ${entry.views} Views`);
+  if (!currentUser || currentUser.id !== essay.student_id) {
+    const entry = allPublishedEssays.find(e => e.id === essayId);
+    if (entry) {
+      entry.views = (entry.views || 0) + 1;
+      const viewBadges = document.querySelectorAll(`[data-essay-id="${essayId}"]`);
+      viewBadges.forEach(badge => badge.innerText = `👁️ ${entry.views} Views`);
+    }
   }
 }
 
@@ -1334,10 +1404,27 @@ function updateFontStyle() {
 
 function updateStats() {
   const raw   = document.getElementById('essay-body').value;
-  // Strip non-breaking spaces and trim before counting
   const text  = raw.replace(/[\u00A0]/g, '').trim();
   const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
-  document.getElementById('word-num').innerText = words;
+  const counter = document.getElementById('word-num');
+  counter.innerText = words;
+  counter.style.color = words > 900 ? '#c0392b' : words > 800 ? '#e67e22' : 'var(--deep-green)';
+}
+
+function validateTitle(input) {
+  const words = input.value.trim().split(/\s+/).filter(Boolean);
+  const atLimit = words.length >= 12;
+  
+  // If at 8 words, only allow backspace, delete, arrows, home, end
+  input.onkeydown = atLimit ? (e) => {
+    const allowed = ['Backspace','Delete','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','Enter'];
+    if (!allowed.includes(e.key)) e.preventDefault();
+  } : null;
+
+  // Hard trim if somehow exceeded
+  if (words.length > 12) {
+    input.value = words.slice(0, 12).join(' ');
+  }
 }
 
 function applyMark(command, value = null) {
@@ -1519,15 +1606,20 @@ async function deleteResource(resourceId) {
 }
 // ── NOTEBOOK: ENTER ON TITLE MOVES TO BODY ───────────────────
 function handleTitleEnter(e) {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    const body = document.getElementById('essay-body');
-    body.focus();
-    if (body.value === '') {
-      body.value = INDENT;
-      body.setSelectionRange(body.value.length, body.value.length);
-    }
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  
+  const body = document.querySelector('#editor-page .notebook-paper textarea');
+  if (!body) return;
+
+  if (body.value.trim() === '') {
+    body.value = INDENT;
   }
+  
+  setTimeout(() => {
+    body.focus();
+    body.setSelectionRange(body.value.length, body.value.length);
+  }, 10);
 }
 // ── NOTIFICATIONS: STUDENT ────────────────────────────────────
 async function loadStudentNotifications() {
@@ -1584,27 +1676,17 @@ async function loadReviewerNotifications() {
   banner.innerHTML = `<span>${grammar}</span>`;
   banner.style.display = 'block';
 }
-// ── NOTEBOOK: SETUP (called when editor page opens) ───────────
 function setupNotebook() {
   const body = document.getElementById('essay-body');
   if (!body) return;
 
-  // Clear the editor for a fresh essay
-  body.value = '';
   document.getElementById('essay-title').value = '';
   document.getElementById('word-num').innerText = '0';
 
-  // Remove old listeners by cloning the element
   const fresh = body.cloneNode(true);
+  fresh.id = 'essay-body';
+  fresh.value = '';
   body.parentNode.replaceChild(fresh, body);
-
-  // Set first indent on first keystroke
-  fresh.addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter' && fresh.value === '') {
-      fresh.value = INDENT;
-      fresh.setSelectionRange(fresh.value.length, fresh.value.length);
-    }
-  }, { once: true });
 
   // Handle Enter key — new paragraph with indent
   fresh.addEventListener('keydown', (e) => {
@@ -1619,31 +1701,46 @@ function setupNotebook() {
     }
   });
 
-  // Block paste
-  fresh.addEventListener('paste', (e) => e.preventDefault());
+  // Block paste with toast
+  fresh.addEventListener('paste', (e) => {
+    e.preventDefault();
+    showPasteToast(e);
+  });
 
-  // Set initial indent and focus
-  // Set initial indent and focus
-  fresh.value = INDENT;
-  fresh.setSelectionRange(fresh.value.length, fresh.value.length);
-  fresh.focus();
+  fresh.addEventListener('input', updateStats);
 
-  // Load any existing draft
+  // Title Enter → move to body
+  // Click or focus on body → ensure indent
+  fresh.addEventListener('click', () => {
+    if (fresh.value.trim() === '') {
+      fresh.value = INDENT;
+      fresh.setSelectionRange(fresh.value.length, fresh.value.length);
+    }
+  });
+
+  fresh.addEventListener('focus', () => {
+    if (fresh.value.trim() === '') {
+      fresh.value = INDENT;
+      fresh.setSelectionRange(fresh.value.length, fresh.value.length);
+    }
+  });
+
+  // Focus title first
+  setTimeout(() => document.getElementById('essay-title').focus(), 50);
+
+  // Load draft, autosave
   loadDraft();
-
-  // Auto-save every 30 seconds
   if (window._autosaveTimer) clearInterval(window._autosaveTimer);
   window._autosaveTimer = setInterval(saveDraft, 30000);
 
-  // Save on page/tab close
   window.onbeforeunload = (e) => {
-    const body = document.getElementById('essay-body')?.value?.trim();
-    if (body && body !== INDENT.trim()) {
+    const val = document.getElementById('essay-body')?.value?.trim();
+    if (val && val !== INDENT.trim()) {
       saveDraft();
       e.preventDefault();
       e.returnValue = '';
     }
-  }
+  };
 }
 // ── CONVERT PLAIN TEXT TO PARAGRAPHS ─────────────────────────
 function toHTML(text) {
@@ -1690,19 +1787,36 @@ function loadDraft() {
     if (!draft.title && !draft.body) return;
 
     const savedAt = new Date(draft.savedAt).toLocaleString();
-    const restore = confirm(`You have an unsaved draft from ${savedAt}.\n\nWould you like to restore it?`);
+    const banner  = document.getElementById('draft-banner');
+    const msg     = document.getElementById('draft-banner-msg');
 
-    if (restore) {
-      document.getElementById('essay-title').value = draft.title;
-      const body = document.getElementById('essay-body');
-      body.value = draft.body;
-      updateStats();
-    } else {
-      clearDraft();
-    }
+    msg.innerText = `You have an unsaved draft from ${savedAt}.`;
+    banner.style.display = 'flex';
+
+    // Store draft temporarily for restore/discard buttons
+    window._pendingDraft = draft;
   } catch(e) {
     console.error('Draft restore error:', e);
   }
+}
+
+function restoreDraft() {
+  const draft = window._pendingDraft;
+  if (!draft) return;
+
+  document.getElementById('essay-title').value = draft.title || '';
+  const body = document.getElementById('essay-body');
+  body.value = draft.body || '';
+  updateStats();
+
+  document.getElementById('draft-banner').style.display = 'none';
+  window._pendingDraft = null;
+}
+
+function discardDraft() {
+  clearDraft();
+  window._pendingDraft = null;
+  document.getElementById('draft-banner').style.display = 'none';
 }
 
 function clearDraft() {
@@ -1748,8 +1862,7 @@ let activeResetUserId = null;
 // ── ADMIN: LOAD EVERYTHING ────────────────────────────────────
 async function loadAdminPanel() {
   if (!currentUser || currentMeta?.role !== 'admin') {
-    alert('Unauthorized access.');
-    showPage('reviewer-dash');
+    showPage('home');
     return;
   }
   await Promise.all([
@@ -1985,8 +2098,8 @@ function openResetModal(userId, userName) {
 }
 
 async function confirmAdminPasswordReset() {
-  const np   = document.getElementById('admin-new-password').value;
-  const cnp  = document.getElementById('admin-confirm-password').value;
+  const np    = document.getElementById('admin-new-password').value;
+  const cnp   = document.getElementById('admin-confirm-password').value;
   const msgEl = document.getElementById('admin-reset-msg');
 
   if (np.length < 6) {
@@ -1998,19 +2111,31 @@ async function confirmAdminPasswordReset() {
     return;
   }
 
-  // Note: resetting another user's password requires service role key
-  // This resets YOUR OWN password as a workaround via Supabase client
-  const { error } = await sb.auth.updateUser({ password: np });
+  msgEl.innerHTML = '<p style="color:var(--muted); font-size:0.85rem;"><span class="spinner"></span> Resetting…</p>';
 
-  if (error) {
-    msgEl.innerHTML = `<p class="error-msg">${error.message}</p>`;
+  const { data: { session } } = await sb.auth.getSession();
+
+  const res = await fetch(
+    'https://lftwjduikvoqcmhnlnej.supabase.co/functions/v1/rapid-handler',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({ targetUid: activeResetUserId, newPassword: np })
+    }
+  );
+
+  if (!res.ok) {
+    const text = await res.text();
+    msgEl.innerHTML = `<p class="error-msg">Failed: ${text}</p>`;
     return;
   }
 
   msgEl.innerHTML = '<p class="success-msg">✅ Password updated! Inform the user of their new password.</p>';
   setTimeout(() => closeResetModal(), 2000);
 }
-
 function closeResetModal() {
   document.getElementById('admin-reset-modal').style.display = 'none';
   activeResetUserId = null;
@@ -2067,8 +2192,13 @@ async function adminDeleteEssay(essayId, essayTitle) {
 
   await Promise.all([loadAdminEssays(), loadAdminStats()]);
 }
+function showPasteToast(e) {
+  if (e) e.preventDefault();
+  const toast = document.getElementById('paste-toast');
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
 </script>
-
 </body>
 </html>
 
