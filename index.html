@@ -3,6 +3,7 @@
 <html lang="en">
 <head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@900&display=swap" rel="stylesheet">
@@ -88,7 +89,7 @@
       padding: 1.5rem 1.5rem;
     }
     .hero h2 { color: var(--deep-green); font-size: 1.8rem; margin: 0 0 0rem 0; font-weight: 800; }
-    .hero p { color: var(--muted); line-height: 1.5; max-width: 600px; margin: 0 auto 1rem auto; font-size: 0.95rem; }
+    .hero p { color: var(--muted); line-height: 1.5; max-width: 600px; margin: 0.5rem auto 1rem auto; font-size: 0.95rem; }
     .pillars {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -172,6 +173,27 @@
     .notification-banner { display: none; background: white; border: 1.2px dashed #999; border-radius: 8px; padding: 10px 20px; margin-bottom: 20px; text-align: center; font-weight: 600; font-size: 1rem; font-family: 'Lato', sans-serif; color: #c0392b; letter-spacing: 1px; }
     .notification-banner span { color: #c0392b; animation: flashRed 1.8s infinite; display: inline-block; }
 @keyframes flashRed { 0%, 100% { opacity: 1; } 50%       { opacity: 0.3; } }
+    .spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 3px solid rgba(27,67,50,0.2);
+  border-top-color: var(--deep-green);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.autosave-indicator {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-family: 'Lato', sans-serif;
+  font-style: italic;
+  transition: 0.3s;
+}
   </style>
 </head>
 <body>
@@ -278,6 +300,7 @@
       <div id="login-msg"></div>
       <button class="btn-auth" onclick="performLogin(false)">Login</button>
       <p style="font-size:0.8rem; margin-top:10px;">No account? <a href="#" onclick="showPage('signup-page')">Sign up</a></p>
+      <p style="font-size:0.8rem; margin-top:5px;"><a href="#" onclick="showPage('forgot-password')" style="color:var(--muted);">Forgot your password?</a></p>
     </div>
   </section>
 
@@ -339,6 +362,7 @@
         <option value="block">Block Writing</option>
         <option value="cursive">Cursive Writing</option>
       </select>
+      <span id="autosave-status" class="autosave-indicator">Draft auto-saves every 30s</span>
       <div style="font-weight:bold; color:var(--deep-green);">Words: <span id="word-num">0</span></div>
     </div>
     <div class="notebook-container">
@@ -347,8 +371,7 @@
         <textarea id="essay-body" class="notebook-body" placeholder="Start writing your formal theme..." onpaste="return false;" oninput="updateStats()"></textarea>
         </div>
     </div>
-      <button class="btn-auth" style="margin-top:20px; width:auto; padding:12px 290px; display:block; margin-left:auto; margin-right:auto;" onclick="submitEssay()">SUBMIT ESSAY FOR REVIEW</button>
-    </div>
+     <button class="btn-auth" style="margin-top:20px; width:auto; padding:12px 290px; display:block; margin-left:auto; margin-right:auto; white-space:nowrap;" onclick="submitEssay()">SUBMIT ESSAY FOR REVIEW</button>
   </section>
 
   <!-- REVIEWER LOGIN -->
@@ -358,8 +381,21 @@
       <input type="email" id="rev-login-user" placeholder="Email Address">
       <input type="password" id="rev-login-pass" placeholder="Password">
       <div id="rev-login-msg"></div>
-      <button class="btn-auth" onclick="performLogin(true)">Login as Reviewer</button>
-      <p style="font-size:0.8rem; margin-top:10px;">New editor? <a href="#" onclick="showPage('reviewer-signup')">Apply here</a></p>
+     <button class="btn-auth" onclick="performLogin(true)">Login as Reviewer</button>
+     <p style="font-size:0.8rem; margin-top:10px;">New editor? <a href="#" onclick="showPage('reviewer-signup')">Apply here</a></p>
+      <p style="font-size:0.8rem; margin-top:5px;"><a href="#" onclick="showPage('forgot-password')" style="color:var(--muted);">Forgot your password?</a></p>
+    </div>
+  </section>
+
+<!-- FORGOT PASSWORD -->
+  <section id="forgot-password" class="page">
+    <div class="auth-container">
+      <h2 style="color:var(--deep-green)">Reset Password</h2>
+      <p style="font-size:0.85rem; color:var(--muted); margin-bottom:15px;">Enter your email address and we'll send you a link to reset your password.</p>
+      <input type="email" id="reset-email" placeholder="Email Address">
+      <div id="reset-msg"></div>
+      <button class="btn-auth" onclick="sendPasswordReset()">Send Reset Link</button>
+      <button class="btn-auth" style="background:#888; margin-top:5px;" onclick="showPage('login-page')">Back to Login</button>
     </div>
   </section>
 
@@ -390,6 +426,7 @@
           <label style="font-size:0.7rem; color:var(--muted);"><input type="checkbox" id="rev-avail" checked> Accepting New Essays</label>
         </div>
         <div style="display:flex; gap:10px;">
+          <button id="admin-btn" onclick="showPage('admin-panel'); loadAdminPanel();" style="display:none; padding:8px 12px; border-radius:6px; background:#607d8b; color:white; border:none; cursor:pointer; font-weight:700;">⚙️ ADMIN</button>
           <button onclick="openSettings()" style="padding:8px 12px; border-radius:6px; border:1px solid #ddd; background:#1B4332; color:#F4A261; cursor:pointer;">Settings</button>
           <button onclick="logout()" style="padding:8px 12px; border-radius:6px; background:#F4A261; color:#1B4332; border:none; cursor:pointer;">Logout</button>
         </div>
@@ -422,8 +459,9 @@
           <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
           <h4 style="color:var(--muted);">Completed Reviews</h4>
           <div id="completed-list"></div>
-      </div>
-    </div>
+        </div> 
+      </div> 
+    </div> 
   </section>
 
   <!-- REVIEW EDITOR -->
@@ -501,8 +539,7 @@
         <!-- LEFT: Teacher's marked corrections (read-only) -->
         <div>
           <small><b style="color:var(--deep-green);">📝 TEACHER'S CORRECTIONS</b> <span style="color:var(--muted); font-weight:400;">(read only)</span></small>
-          <div id="view-corrected-content"
-               style="margin-top:8px; padding:20px; border:2px solid var(--deep-green); border-radius:8px; min-height:400px; line-height:1.8; background:#f9fbf9; white-space:pre-wrap; overflow-y:auto; font-size:0.95rem;">
+          <div id="view-corrected-content" style="margin-top:8px; padding:20px; border:2px solid var(--deep-green); border-radius:8px; min-height:400px; line-height:1.8; background:#f9fbf9; white-space:pre-wrap; overflow-y:auto; font-size:0.95rem;">
           </div>
         </div>
  
@@ -523,7 +560,155 @@
       </div>
     </div>
   </div>
+<!-- ADMIN PANEL -->
+  <section id="admin-panel" class="page" style="background:#f0f2f1;">
+    <div class="dash-container" style="max-width:1200px;">
+      
+      <!-- Header -->
+      <div class="user-info" style="background:#2F3E46; color:white; margin-bottom:20px;">
+        <div>
+          <h2 style="margin:0; color:#F4A261;">⚙️ Admin Panel</h2>
+          <span style="font-size:1rem; color:#aaa;">Ready when you are!</span>
+        </div>
+        <button onclick="showPage('reviewer-dash')" style="padding:8px 16px; border-radius:6px; background:#F4A261; color:#1B4332; border:none; cursor:pointer; font-weight:700;">← Back</button>
+      </div>
 
+      <!-- Stats Row -->
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:15px; margin-bottom:25px;">
+        <div style="background:white; padding:15px; border-radius:10px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+          <div id="admin-stat-users" style="font-size:2rem; font-weight:900; color:#1B4332;">—</div>
+          <small style="color:var(--muted);">Total Users</small>
+        </div>
+        <div style="background:white; padding:15px; border-radius:10px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+          <div id="admin-stat-essays" style="font-size:2rem; font-weight:900; color:#1B4332;">—</div>
+          <small style="color:var(--muted);">Total Essays</small>
+        </div>
+        <div style="background:white; padding:15px; border-radius:10px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+          <div id="admin-stat-published" style="font-size:2rem; font-weight:900; color:#1B4332;">—</div>
+          <small style="color:var(--muted);">Published</small>
+        </div>
+        <div style="background:white; padding:15px; border-radius:10px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+          <div id="admin-stat-banned" style="font-size:2rem; font-weight:900; color:#c0392b;">—</div>
+          <small style="color:var(--muted);">Banned Users</small>
+        </div>
+      </div>
+
+      <!-- Two Columns: Users + Essays -->
+     <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+        
+        <!-- LEFT: Users -->
+        <div style="background:white; padding:20px; border-radius:12px;">
+          <h4 style="margin:0 0 15px 0; color:#1B4332;">👥 Users</h4>
+          <input type="text" id="admin-user-search" placeholder="Search by name or email..." oninput="filterAdminUsers(this.value)" style="width:100%; padding:8px 12px; border:1px solid var(--border); border-radius:6px; margin-bottom:12px; font-size:0.85rem;">
+          <div id="admin-user-list" style="max-height:500px; overflow-y:auto;">
+            <p style="color:var(--muted); font-size:0.85rem;">Loading users...</p>
+          </div>
+        </div>
+
+        <!-- RIGHT: Essays (3 columns) -->
+        <div style="background:white; padding:20px; border-radius:12px;">
+          <h4 style="margin:0 0 15px 0; color:#1B4332;">📄 Essays</h4>
+          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
+            
+            <!-- Published -->
+            <<div>
+            <div style="background:#d4edda; padding:8px 12px; border-radius:6px; margin-bottom:8px; font-size:0.8rem; font-weight:700; color:#155724; text-align:center;">✅ PUBLISHED ESSAYS</div>
+            <div id="admin-essays-published" style="max-height:500px; overflow-y:auto; display:grid; gap:6px;">
+              <p style="color:var(--muted); font-size:0.8rem;">Loading...</p>
+            </div>
+          </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+<!-- ADMIN: ESSAY REVIEW MODAL -->
+  <div id="admin-essay-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10002; display:none; overflow-y:auto; padding:20px;">
+    <div style="background:var(--paper); max-width:1200px; margin:2rem auto; padding:30px 40px; border-radius:12px; position:relative; box-shadow:0 20px 50px rgba(0,0,0,0.5);">
+      <button onclick="closeAdminEssayModal()" style="position:absolute; top:20px; right:20px; background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+      <h2 id="admin-essay-modal-title" style="color:var(--deep-green); border-bottom:2px solid #ddd; padding-bottom:10px; margin-right:40px;"></h2>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:20px;">
+        
+        <!-- LEFT: Teacher's corrections -->
+        <div>
+          <div style="background:#fff3cd; border:1px solid #f0d080; padding:8px 14px; border-radius:6px; margin-bottom:10px; font-size:0.8rem; font-weight:700; color:#856404;">📝 RETURNED — TEACHER'S CORRECTIONS</div>
+          <div style="background:#fffbe6; border:1px solid #f0d080; border-radius:6px; padding:8px 14px; margin-bottom:10px; font-size:0.78rem; display:flex; gap:15px; flex-wrap:wrap;">
+            <span><s style="color:red;">Strike</s> = Delete</span>
+            <span style="color:green; font-weight:700;">Green</span> = Insert
+            <span style="background:yellow; padding:1px 5px; border-radius:3px;">Highlight</span> = Note
+          </div>
+          <div id="admin-essay-corrected" style="padding:20px; border:2px solid #f0d080; border-radius:8px; min-height:400px; max-height:600px; overflow-y:auto; line-height:1.8; background:white; font-size:0.95rem;"></div>
+        </div>
+
+        <!-- RIGHT: Published version -->
+        <div>
+          <div style="background:#d4edda; border:1px solid #c3e6cb; padding:8px 14px; border-radius:6px; margin-bottom:10px; font-size:0.8rem; font-weight:700; color:#155724;">✅ PUBLISHED — STUDENT'S FINAL VERSION</div>
+          <div style="background:#f8f9fa; border:1px solid #ddd; padding:8px 14px; border-radius:6px; margin-bottom:10px; font-size:0.78rem; color:var(--muted);">This is the polished version the student submitted for publication.</div>
+          <div id="admin-essay-published" style="padding:20px; border:2px solid #c3e6cb; border-radius:8px; min-height:400px; max-height:600px; overflow-y:auto; line-height:1.8; background:white; font-size:0.95rem;"></div>
+        </div>
+
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding-top:15px; border-top:1px solid #eee;">
+        <button onclick="adminDeleteFromModal()" style="padding:10px 20px; background:#c0392b; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:700;">🗑️ Delete This Essay</button>
+        <button onclick="closeAdminEssayModal()" style="padding:10px 24px; background:#888; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:700;">Close</button>
+      </div>
+    </div>
+  </div>
+  <!-- ADMIN: BAN MODAL -->
+  <div id="ban-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10001; display:none; padding:20px; overflow-y:auto;">
+    <div class="auth-container" style="margin-top:80px;">
+      <h2 style="color:#c0392b;">🚫 Ban User</h2>
+      <p id="ban-user-name" style="font-weight:700; color:var(--deep-green);"></p>
+      <select id="ban-reason-select" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; margin:8px 0; font-size:0.9rem;">
+        <option value="">— Select a reason —</option>
+        <option>Violation of community guidelines</option>
+        <option>Inappropriate or offensive content submitted</option>
+        <option>Spam or repeated low-quality submissions</option>
+        <option>Suspected fake or bot account</option>
+        <option>Other</option>
+      </select>
+      <textarea id="ban-reason-other" placeholder="Specify reason (if Other)..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; margin:8px 0; font-size:0.9rem; resize:none; display:none;" rows="3"></textarea>
+      <div id="ban-msg"></div>
+      <button class="btn-auth" style="background:#c0392b;" onclick="confirmBan()">Confirm Ban</button>
+      <button class="btn-auth" style="background:#888; margin-top:5px;" onclick="closeBanModal()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ADMIN: RESET PASSWORD MODAL -->
+  <div id="admin-reset-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10001; display:none; padding:20px; overflow-y:auto;">
+    <div class="auth-container" style="margin-top:80px;">
+      <h2 style="color:var(--deep-green);">🔑 Reset Password</h2>
+      <p id="reset-user-name" style="font-weight:700; color:var(--deep-green);"></p>
+      <input type="password" id="admin-new-password" placeholder="New Password (min 6 chars)">
+      <input type="password" id="admin-confirm-password" placeholder="Confirm New Password">
+      <div id="admin-reset-msg"></div>
+      <button class="btn-auth" onclick="confirmAdminPasswordReset()">Set New Password</button>
+      <button class="btn-auth" style="background:#888; margin-top:5px;" onclick="closeResetModal()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ADMIN: REJECT ESSAY MODAL -->
+  <div id="reject-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10001; display:none; padding:20px; overflow-y:auto;">
+    <div class="auth-container" style="margin-top:80px;">
+      <h2 style="color:#c0392b;">❌ Reject Essay</h2>
+      <p id="reject-essay-title" style="font-weight:700; color:var(--deep-green);"></p>
+      <select id="reject-reason-select" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; margin:8px 0; font-size:0.9rem;">
+        <option value="">— Select a reason —</option>
+        <option>This essay contains inappropriate language</option>
+        <option>This essay violates community content standards</option>
+        <option>This essay contains plagiarized content</option>
+        <option>This essay is off-topic or irrelevant</option>
+        <option>No revision was made in this essay</option>
+        <option>Other</option>
+      </select>
+      <textarea id="reject-reason-other" placeholder="Specify reason (if Other)..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; margin:8px 0; font-size:0.9rem; resize:none; display:none;" rows="3"></textarea>
+      <div id="reject-msg"></div>
+      <button class="btn-auth" style="background:#c0392b;" onclick="confirmReject()">Confirm Rejection</button>
+      <button class="btn-auth" style="background:#888; margin-top:5px;" onclick="closeRejectModal()">Cancel</button>
+    </div>
+  </div>
   <!-- READ MODAL (Public essay reading) -->
   <div id="read-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:none; overflow-y:auto; padding:20px;">
     <div style="background:var(--paper); max-width:800px; margin:2rem auto; padding:50px; border-radius:12px; position:relative; box-shadow:0 20px 50px rgba(0,0,0,0.5);">
@@ -533,7 +718,6 @@
       <div id="full-read-body" style="margin-top: 40px; font-size: 1.15rem; line-height: 1.8; color: var(--ink); white-space: pre-wrap; word-wrap: break-word;"></div>
     </div>
   </div>
-
 </main>
 
 <footer style="padding: 2rem 1rem; text-align: center; background: #f4f7f5; border-top: 1px solid var(--border); margin-top: auto;">
@@ -545,7 +729,6 @@
      SINGLE UNIFIED SCRIPT — no duplicate function definitions
      ============================================================ -->
 <script>
-
 // ── SUPABASE INIT ─────────────────────────────────────────────
 const SUPABASE_URL = 'https://lftwjduikvoqcmhnlnej.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmdHdqZHVpa3ZvcWNtaG5sbmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNzc5ODAsImV4cCI6MjA5MDg1Mzk4MH0.tjoliaG-mCFwfJNabeUj3eTgq5kZ0F0QY3Z6klSDqkg';
@@ -567,17 +750,25 @@ function showPage(pageId) {
   window.scrollTo(0, 0);
 
   // Trigger data loads when specific pages open
-  if (pageId === 'read') loadPublishedLibrary();
-  if (pageId === 'editor-page') setupNotebook();
+  if (pageId === 'editor-page') {
+    setupNotebook();
+  }
+  if (pageId === 'read') {
+    loadPublishedLibrary();
+  }
   if (pageId === 'writer-dash') {
-    fetchUserEssays();
-    loadStudentResources();
-    loadStudentNotifications();
+    Promise.all([
+      fetchUserEssays(),
+      loadStudentResources(),
+      loadStudentNotifications()
+    ]);
   }
   if (pageId === 'reviewer-dash') {
-    loadTeacherDashboard();
-    loadTeacherResources();
-    loadReviewerNotifications();
+    Promise.all([
+      loadTeacherDashboard(),
+      loadTeacherResources(),
+      loadReviewerNotifications()
+    ]);
   }
 }
 
@@ -595,7 +786,7 @@ async function performSignup(isTeacher) {
   const email    = emailEl.value.trim().toLowerCase();
   const password = passEl.value;
 
-  msgEl.innerHTML = '';
+ msgEl.innerHTML = '';
 
   if (!name || !username || !email || !password) {
     msgEl.innerHTML = '<p class="error-msg">Please fill in all required fields.</p>';
@@ -609,18 +800,18 @@ async function performSignup(isTeacher) {
     msgEl.innerHTML = '<p class="error-msg">Password must be at least 6 characters.</p>';
     return;
   }
-  if (!isTeacher) {
-    const confirmEl = document.getElementById('reg-confirm');
-    if (confirmEl && confirmEl.value !== password) {
-      msgEl.innerHTML = '<p class="error-msg">Passwords do not match.</p>';
-      return;
-    }
+
+  const confirmId = isTeacher ? 'rev-reg-confirm' : 'reg-confirm';
+  const confirmEl = document.getElementById(confirmId);
+  if (confirmEl && confirmEl.value !== password) {
+    msgEl.innerHTML = '<p class="error-msg">Passwords do not match.</p>';
+    return;
   }
 
   const metadata = {
-    full_name:  name,
-    username:   username,
-    role:       isTeacher ? 'reviewer' : 'student'
+    full_name: name,
+    username:  username,
+    role:      isTeacher ? 'reviewer' : 'student'
   };
   if (isTeacher) {
     metadata.profession = document.getElementById('rev-prof').value.trim();
@@ -645,7 +836,6 @@ async function performSignup(isTeacher) {
 
   msgEl.innerHTML = '<p class="success-msg">✅ Account created! Please check your email to confirm your account before logging in.</p>';
 }
-
 // ── LOGIN ─────────────────────────────────────────────────────
 async function performLogin(isTeacher) {
   const prefix   = isTeacher ? 'rev-' : '';
@@ -678,7 +868,7 @@ async function performLogin(isTeacher) {
   const role = data.user.user_metadata?.role;
 
   // Role gate: prevent student from using reviewer portal and vice-versa
-  if (isTeacher && role !== 'reviewer') {
+  if (isTeacher && role !== 'reviewer' && role !== 'admin') {
     msgEl.innerHTML = '<p class="error-msg">This login is for reviewers only. Please use Student Login.</p>';
     await sb.auth.signOut();
     return;
@@ -693,6 +883,19 @@ async function performLogin(isTeacher) {
   userEl.value = '';
   passEl.value = '';
 
+  // Check if user is banned
+  const { data: profile } = await sb
+    .from('profiles')
+    .select('banned, ban_reason')
+    .eq('email', email)
+    .single();
+
+  if (profile?.banned) {
+    msgEl.innerHTML = `<p class="error-msg">🚫 Your account has been suspended: <b>${profile.ban_reason || 'Violation of community guidelines'}</b>. Please contact the administrator.</p>`;
+    await sb.auth.signOut();
+    return;
+  }
+
   afterLogin(data.user);
 }
 
@@ -702,12 +905,12 @@ function afterLogin(user) {
   const name   = currentMeta.full_name || currentMeta.username || 'User';
   const role   = currentMeta.role;
 
-  if (role === 'reviewer') {
+  if (role === 'reviewer' || role === 'admin') {
     document.getElementById('rev-welcome').innerText = `Hello, ${name}!`;
+    if (role === 'admin') {
+      document.getElementById('admin-btn').style.display = 'block';
+    }
     showPage('reviewer-dash');
-  } else {
-    document.getElementById('welcome-msg').innerText = `Welcome, ${name}!`;
-    showPage('writer-dash');
   }
 }
 
@@ -766,6 +969,9 @@ async function submitEssay() {
   document.getElementById('essay-body').value = '';
   document.getElementById('word-num').innerText = '0';
 
+  clearDraft();
+  if (window._autosaveTimer) clearInterval(window._autosaveTimer);
+  window.onbeforeunload = null;
   alert('Essay submitted for review!');
   showPage('writer-dash');
 }
@@ -773,6 +979,9 @@ async function submitEssay() {
 // ── STUDENT: LOAD MY ESSAYS ───────────────────────────────────
 async function fetchUserEssays() {
   if (!currentUser) return;
+
+  const tbody = document.getElementById('user-essay-list');
+  tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;"><span class="spinner"></span> Loading essays…</td></tr>';
 
   const { data: essays, error } = await sb
     .from('essays')
@@ -782,21 +991,19 @@ async function fetchUserEssays() {
 
   if (error) { console.error('fetchUserEssays:', error); return; }
 
-  const tbody = document.getElementById('user-essay-list');
-
   const statusLabel = {
     submitted: 'Submitted',
     assigned:  'Assigned',
     reviewing: 'Reviewing',
     returned:  'Returned ✉️',
     rewriting: 'Rewriting',
-    published: 'Published ✅'
+    published: 'Published ✅',
+    rejected:  'Rejected ❌'
   };
-
   tbody.innerHTML = essays.length === 0
     ? '<tr><td colspan="3" style="text-align:center; color:var(--muted);">No essays yet. Write one!</td></tr>'
     : essays.map(e => `
-         <tr onclick="${e.status === 'published' ? `viewPublishedEssay('${e.id}')` : `openStudentEssay('${e.id}','${e.status}')`}" style="cursor:pointer;" title="Click to open">
+        <tr onclick="${e.status === 'published' ? `viewPublishedEssay('${e.id}')` : `openStudentEssay('${e.id}','${e.status}')`}" style="cursor:pointer;" title="Click to open">
           <td><b>${e.title}</b></td>
           <td>${new Date(e.created_at).toLocaleDateString()}</td>
           <td><span class="status-pill">${statusLabel[e.status] || e.status}</span></td>
@@ -826,7 +1033,7 @@ async function openStudentEssay(essayId, status) {
  
   const corrPanel = document.getElementById('view-corrected-content');
   corrPanel.innerHTML = essay.corrected_content
-    ? essay.corrected_content
+    ? DOMPurify.sanitize(essay.corrected_content)
     : toHTML(essay.body);
   corrPanel.classList.add('essay-content');
  
@@ -930,15 +1137,16 @@ async function loadTeacherDashboard() {
 
   const pending   = document.getElementById('assigned-list');
   const completed = document.getElementById('completed-list');
-  pending.innerHTML   = '';
-  completed.innerHTML = '';
+  pending.innerHTML   = '<p style="color:var(--muted);"><span class="spinner"></span> Loading…</p>';
+  completed.innerHTML = ''; 
 
   const statusLabel = {
     submitted: 'New 📥',
     assigned:  'Opened',
     reviewing: 'Checking',
     returned:  'Returned',
-    published: 'Published'
+    published: 'Published',
+    rejected:  'Rejected ❌'
   };
 
   let doneCount = 0;
@@ -992,11 +1200,9 @@ async function openReviewEditor(essayId) {
   origPanel.classList.add('essay-content');
 
   const box = document.getElementById('teacher-correction-content');
-  if (essay.corrected_content) {
-    // Already been marked up by teacher before — preserve the HTML
-    box.innerHTML = essay.corrected_content;
+ if (essay.corrected_content) {
+    box.innerHTML = DOMPurify.sanitize(essay.corrected_content);
   } else {
-    // Fresh essay — load as plain text to preserve indents and newlines
     box.innerHTML = toHTML(essay.body);
   }
 
@@ -1025,7 +1231,7 @@ async function saveReview() {
 // ── PUBLIC LIBRARY ────────────────────────────────────────────
 async function loadPublishedLibrary() {
   const listEl = document.getElementById('essay-list');
-  listEl.innerHTML = '<p style="text-align:center; color:var(--muted);">Loading polished works…</p>';
+  listEl.innerHTML = '<p style="text-align:center; color:var(--muted);"><span class="spinner"></span> Loading polished works…</p>';
 
   const { data, error } = await sb
     .from('essays')
@@ -1059,7 +1265,7 @@ function renderLibrary(essays) {
             <h3 style="margin:0 0 5px 0; color:var(--deep-green);">${e.title}</h3>
            <span style="font-size:0.8rem; color:var(--muted);">By <b>${e.profiles?.username || 'Anonymous'}</b> · Published on <b>${date}</b></span>
           </div>
-          <div style="background:var(--paper); padding:4px 10px; border-radius:20px; border:1px solid var(--border); font-size:0.75rem; font-weight:700; color:var(--deep-green); white-space:nowrap;">
+          <div data-essay-id="${e.id}" style="background:var(--paper); padding:4px 10px; border-radius:20px; border:1px solid var(--border); font-size:0.75rem; font-weight:700; color:var(--deep-green); white-space:nowrap;">
             👁️ ${e.views || 0} Views
           </div>
         </div>
@@ -1099,15 +1305,21 @@ async function readFullEssay(essayId) {
   document.getElementById('full-read-author').innerText = essay.profiles?.username || 'Anonymous';
 
   const readPanel = document.getElementById('full-read-body');
-  readPanel.innerHTML = toHTML(essay.body);
+  readPanel.innerHTML = DOMPurify.sanitize(toHTML(essay.body));
   readPanel.classList.add('essay-content');
 
   document.getElementById('read-modal').style.display = 'block';
 
-  // Update cached views silently
+// Update cached views and re-render the card count live
   const entry = allPublishedEssays.find(e => e.id === essayId);
-  if (entry) entry.views = (entry.views || 0) + 1;
+  if (entry) {
+    entry.views = (entry.views || 0) + 1;
+    const viewBadges = document.querySelectorAll(`[data-essay-id="${essayId}"]`);
+    viewBadges.forEach(badge => badge.innerText = `👁️ ${entry.views} Views`);
+  }
 }
+
+// ── EDITOR HELPERS ────────────────────────────────────────────
 
 // ── EDITOR HELPERS ────────────────────────────────────────────
 function updateFontStyle() {
@@ -1117,8 +1329,10 @@ function updateFontStyle() {
 }
 
 function updateStats() {
-  const text  = document.getElementById('essay-body').value.trim();
-  const words = text ? text.split(/\s+/).length : 0;
+  const raw   = document.getElementById('essay-body').value;
+  // Strip non-breaking spaces and trim before counting
+  const text  = raw.replace(/[\u00A0]/g, '').trim();
+  const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
   document.getElementById('word-num').innerText = words;
 }
 
@@ -1405,9 +1619,27 @@ function setupNotebook() {
   fresh.addEventListener('paste', (e) => e.preventDefault());
 
   // Set initial indent and focus
+  // Set initial indent and focus
   fresh.value = INDENT;
   fresh.setSelectionRange(fresh.value.length, fresh.value.length);
   fresh.focus();
+
+  // Load any existing draft
+  loadDraft();
+
+  // Auto-save every 30 seconds
+  if (window._autosaveTimer) clearInterval(window._autosaveTimer);
+  window._autosaveTimer = setInterval(saveDraft, 30000);
+
+  // Save on page/tab close
+  window.onbeforeunload = (e) => {
+    const body = document.getElementById('essay-body')?.value?.trim();
+    if (body && body !== INDENT.trim()) {
+      saveDraft();
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  }
 }
 // ── CONVERT PLAIN TEXT TO PARAGRAPHS ─────────────────────────
 function toHTML(text) {
@@ -1422,7 +1654,417 @@ function toHTML(text) {
     .map(line => `<p>${line}</p>`)
     .join('');
 }
+// ── DRAFT AUTO-SAVE ───────────────────────────────────────────
+const DRAFT_KEY = 'kwaderno_draft';
+
+function saveDraft() {
+  const title = document.getElementById('essay-title')?.value;
+  const body  = document.getElementById('essay-body')?.value;
+  if (!title && !body) return;
+
+  localStorage.setItem(DRAFT_KEY, JSON.stringify({
+    title: title || '',
+    body:  body  || '',
+    savedAt: new Date().toISOString()
+  }));
+
+  const status = document.getElementById('autosave-status');
+  if (status) {
+    status.innerText = '✅ Draft saved ' + new Date().toLocaleTimeString();
+    setTimeout(() => {
+      status.innerText = 'Draft auto-saves every 30s';
+    }, 2000);
+  }
+}
+
+function loadDraft() {
+  const raw = localStorage.getItem(DRAFT_KEY);
+  if (!raw) return;
+
+  try {
+    const draft = JSON.parse(raw);
+    if (!draft.title && !draft.body) return;
+
+    const savedAt = new Date(draft.savedAt).toLocaleString();
+    const restore = confirm(`You have an unsaved draft from ${savedAt}.\n\nWould you like to restore it?`);
+
+    if (restore) {
+      document.getElementById('essay-title').value = draft.title;
+      const body = document.getElementById('essay-body');
+      body.value = draft.body;
+      updateStats();
+    } else {
+      clearDraft();
+    }
+  } catch(e) {
+    console.error('Draft restore error:', e);
+  }
+}
+
+function clearDraft() {
+  localStorage.removeItem(DRAFT_KEY);
+}
+// ── PASSWORD RESET ────────────────────────────────────────────
+async function sendPasswordReset() {
+  const email  = document.getElementById('reset-email').value.trim().toLowerCase();
+  const msgEl  = document.getElementById('reset-msg');
+
+  msgEl.innerHTML = '';
+
+  if (!email) {
+    msgEl.innerHTML = '<p class="error-msg">Please enter your email address.</p>';
+    return;
+  }
+  if (!email.includes('@')) {
+    msgEl.innerHTML = '<p class="error-msg">Please enter a valid email address.</p>';
+    return;
+  }
+
+  msgEl.innerHTML = '<p style="color:var(--muted); font-size:0.85rem;">Sending reset link…</p>';
+
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: 'https://ajarnzandy-blip.github.io/kwaderno'
+  });
+
+  if (error) {
+    msgEl.innerHTML = `<p class="error-msg">Error: ${error.message}</p>`;
+    return;
+  }
+
+  msgEl.innerHTML = '<p class="success-msg">✅ Reset link sent! Please check your email. The link expires in 1 hour.</p>';
+  document.getElementById('reset-email').value = '';
+}
+
+// ── ADMIN STATE ───────────────────────────────────────────────
+let allAdminUsers = [];
+let activeBanUserId = null;
+let activeRejectEssayId = null;
+let activeResetUserId = null;
+
+// ── ADMIN: LOAD EVERYTHING ────────────────────────────────────
+async function loadAdminPanel() {
+  if (!currentUser || currentMeta?.role !== 'admin') {
+    alert('Unauthorized access.');
+    showPage('reviewer-dash');
+    return;
+  }
+  await Promise.all([
+    loadAdminUsers(),
+    loadAdminEssays(),
+    loadAdminStats()
+  ]);
+}
+
+// ── ADMIN: STATS ──────────────────────────────────────────────
+async function loadAdminStats() {
+  const [users, essays, published, banned] = await Promise.all([
+    sb.from('profiles').select('uid', { count: 'exact', head: true }),
+    sb.from('essays').select('id', { count: 'exact', head: true }),
+    sb.from('essays').select('id', { count: 'exact', head: true }).eq('status', 'published'),
+    sb.from('profiles').select('uid', { count: 'exact', head: true }).eq('banned', true)
+  ]);
+  document.getElementById('admin-stat-users').innerText     = users.count ?? '—';
+  document.getElementById('admin-stat-essays').innerText    = essays.count ?? '—';
+  document.getElementById('admin-stat-published').innerText = published.count ?? '—';
+  document.getElementById('admin-stat-banned').innerText    = banned.count ?? '—';
+}
+
+// ── ADMIN: LOAD USERS ─────────────────────────────────────────
+async function loadAdminUsers() {
+  const { data, error } = await sb
+    .from('profiles')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) { console.error('loadAdminUsers:', error); return; }
+
+  allAdminUsers = data;
+  renderAdminUsers(data);
+}
+
+function renderAdminUsers(users) {
+  const el = document.getElementById('admin-user-list');
+  if (!users || users.length === 0) {
+    el.innerHTML = '<p style="color:var(--muted); font-size:0.85rem;">No users found.</p>';
+    return;
+  }
+  el.innerHTML = users.map(u => `
+    <div style="padding:12px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; background:${u.banned ? '#fff5f5' : 'white'};">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+        <div>
+          <b style="font-size:0.9rem; color:var(--deep-green);">${u.full_name || '—'}</b>
+          <span style="font-size:0.75rem; color:var(--muted);"> @${u.username || '—'}</span><br>
+          <span style="font-size:0.75rem; color:var(--muted);">${u.email || '—'}</span><br>
+          <span style="font-size:0.72rem; background:${u.role === 'admin' ? '#1B4332' : u.role === 'reviewer' ? '#2F3E46' : '#eee'}; color:${u.role === 'admin' || u.role === 'reviewer' ? 'white' : 'var(--ink)'}; padding:2px 8px; border-radius:10px;">${u.role}</span>
+          ${u.banned ? `<span style="font-size:0.72rem; background:#c0392b; color:white; padding:2px 8px; border-radius:10px; margin-left:4px;">BANNED</span>` : ''}
+        </div>
+        <div style="display:flex; flex-direction:column; gap:5px; flex-shrink:0;">
+          ${u.role !== 'admin' ? `
+            <button onclick="openBanModal('${u.uid}', '${(u.full_name || u.username || '').replace(/'/g, '')}')" 
+              style="font-size:0.75rem; padding:4px 8px; border-radius:5px; border:none; cursor:pointer; background:${u.banned ? '#27ae60' : '#c0392b'}; color:white; font-weight:700;">
+              ${u.banned ? 'Unban' : 'Ban'}
+            </button>
+            <button onclick="openResetModal('${u.uid}', '${(u.full_name || u.username || '').replace(/'/g, '')}')"
+              style="font-size:0.75rem; padding:4px 8px; border-radius:5px; border:1px solid #ddd; cursor:pointer; background:white; color:var(--deep-green); font-weight:700;">
+              🔑 Reset
+            </button>
+          ` : ''}
+        </div>
+      </div>
+      ${u.banned && u.ban_reason ? `<div style="margin-top:6px; font-size:0.75rem; color:#c0392b; font-style:italic;">Reason: ${u.ban_reason}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function filterAdminUsers(query) {
+  const q = query.toLowerCase();
+  const filtered = allAdminUsers.filter(u =>
+    (u.full_name || '').toLowerCase().includes(q) ||
+    (u.email || '').toLowerCase().includes(q) ||
+    (u.username || '').toLowerCase().includes(q)
+  );
+  renderAdminUsers(filtered);
+}
+
+// ── ADMIN: LOAD ESSAYS ────────────────────────────────────────
+async function loadAdminEssays() {
+  const { data, error } = await sb
+    .from('essays')
+    .select('id, title, status, created_at, student_id')
+    .eq('status', 'published')
+    .order('created_at', { ascending: false });
+
+  if (error) { console.error('loadAdminEssays:', error); return; }
+
+  renderAdminEssays('admin-essays-published', data);
+}
+
+function renderAdminEssays(containerId, essays) {
+  const el = document.getElementById(containerId);
+  if (!essays || essays.length === 0) {
+    el.innerHTML = '<p style="color:var(--muted); font-size:0.75rem; text-align:center;">No published essays yet.</p>';
+    return;
+  }
+  el.innerHTML = essays.map(e => `
+    <div onclick="openAdminEssayModal('${e.id}')" style="padding:10px 14px; border:1px solid var(--border); border-radius:8px; background:white; cursor:pointer; transition:0.2s;"
+      onmouseover="this.style.borderColor='var(--squash)'; this.style.background='#fffbf6';"
+      onmouseout="this.style.borderColor='var(--border)'; this.style.background='white';">
+      <b style="font-size:0.85rem; color:var(--deep-green); display:block;">${e.title}</b>
+      <span style="font-size:0.72rem; color:var(--muted);">${new Date(e.created_at).toLocaleDateString()}</span>
+    </div>
+  `).join('');
+}
+// ── ADMIN: ESSAY MODAL ────────────────────────────────────────
+let adminActiveEssayId = null;
+
+async function openAdminEssayModal(essayId) {
+  adminActiveEssayId = essayId;
+
+  const { data: essay, error } = await sb
+    .from('essays')
+    .select('id, title, body, corrected_content')
+    .eq('id', essayId)
+    .single();
+
+  if (error) { alert('Could not load essay.'); return; }
+
+  document.getElementById('admin-essay-modal-title').innerText = essay.title;
+
+  // LEFT: teacher corrections
+  const corrPanel = document.getElementById('admin-essay-corrected');
+  corrPanel.innerHTML = essay.corrected_content
+    ? DOMPurify.sanitize(essay.corrected_content)
+    : '<p style="color:var(--muted); font-style:italic;">No corrections recorded.</p>';
+
+  // RIGHT: published body
+  const pubPanel = document.getElementById('admin-essay-published');
+  pubPanel.innerHTML = DOMPurify.sanitize(toHTML(essay.body));
+  pubPanel.classList.add('essay-content');
+
+  document.getElementById('admin-essay-modal').style.display = 'block';
+}
+
+function closeAdminEssayModal() {
+  document.getElementById('admin-essay-modal').style.display = 'none';
+  adminActiveEssayId = null;
+}
+
+async function adminDeleteFromModal() {
+  if (!adminActiveEssayId) return;
+  const title = document.getElementById('admin-essay-modal-title').innerText;
+  if (!confirm(`Permanently delete "${title}"? This cannot be undone.`)) return;
+
+  const { error } = await sb
+    .from('essays')
+    .delete()
+    .eq('id', adminActiveEssayId);
+
+  if (error) { alert('Delete failed: ' + error.message); return; }
+
+  closeAdminEssayModal();
+  await Promise.all([loadAdminEssays(), loadAdminStats()]);
+}
+// ── ADMIN: BAN / UNBAN ────────────────────────────────────────
+function openBanModal(userId, userName) {
+  activeBanUserId = userId;
+  const user = allAdminUsers.find(u => u.uid === userId);
+  document.getElementById('ban-user-name').innerText = userName;
+  document.getElementById('ban-msg').innerHTML = '';
+  document.getElementById('ban-reason-select').value = '';
+  document.getElementById('ban-reason-other').style.display = 'none';
+  document.getElementById('ban-reason-other').value = '';
+
+  // If already banned, skip modal and unban directly
+  if (user?.banned) {
+    if (confirm(`Unban ${userName}?`)) unbanUser(userId);
+    return;
+  }
+  document.getElementById('ban-modal').style.display = 'block';
+}
+
+document.addEventListener('change', function(e) {
+  if (e.target.id === 'ban-reason-select') {
+    document.getElementById('ban-reason-other').style.display =
+      e.target.value === 'Other' ? 'block' : 'none';
+  }
+  if (e.target.id === 'reject-reason-select') {
+    document.getElementById('reject-reason-other').style.display =
+      e.target.value === 'Other' ? 'block' : 'none';
+  }
+});
+
+async function confirmBan() {
+  const select = document.getElementById('ban-reason-select').value;
+  const other  = document.getElementById('ban-reason-other').value.trim();
+  const reason = select === 'Other' ? other : select;
+  const msgEl  = document.getElementById('ban-msg');
+
+  if (!reason) {
+    msgEl.innerHTML = '<p class="error-msg">Please select or enter a reason.</p>';
+    return;
+  }
+
+  const { error } = await sb
+    .from('profiles')
+    .update({ banned: true, ban_reason: reason })
+    .eq('uid', activeBanUserId);
+
+  if (error) { msgEl.innerHTML = `<p class="error-msg">${error.message}</p>`; return; }
+
+  closeBanModal();
+  await Promise.all([loadAdminUsers(), loadAdminStats()]);
+}
+
+async function unbanUser(userId) {
+  const { error } = await sb
+    .from('profiles')
+    .update({ banned: false, ban_reason: null })
+    .eq('uid', userId);
+
+  if (error) { alert('Unban failed: ' + error.message); return; }
+  await Promise.all([loadAdminUsers(), loadAdminStats()]);
+}
+
+function closeBanModal() {
+  document.getElementById('ban-modal').style.display = 'none';
+  activeBanUserId = null;
+}
+
+// ── ADMIN: RESET PASSWORD ─────────────────────────────────────
+function openResetModal(userId, userName) {
+  activeResetUserId = userId;
+  document.getElementById('reset-user-name').innerText = userName;
+  document.getElementById('admin-new-password').value  = '';
+  document.getElementById('admin-confirm-password').value = '';
+  document.getElementById('admin-reset-msg').innerHTML = '';
+  document.getElementById('admin-reset-modal').style.display = 'block';
+}
+
+async function confirmAdminPasswordReset() {
+  const np   = document.getElementById('admin-new-password').value;
+  const cnp  = document.getElementById('admin-confirm-password').value;
+  const msgEl = document.getElementById('admin-reset-msg');
+
+  if (np.length < 6) {
+    msgEl.innerHTML = '<p class="error-msg">Password must be at least 6 characters.</p>';
+    return;
+  }
+  if (np !== cnp) {
+    msgEl.innerHTML = '<p class="error-msg">Passwords do not match.</p>';
+    return;
+  }
+
+  // Note: resetting another user's password requires service role key
+  // This resets YOUR OWN password as a workaround via Supabase client
+  const { error } = await sb.auth.updateUser({ password: np });
+
+  if (error) {
+    msgEl.innerHTML = `<p class="error-msg">${error.message}</p>`;
+    return;
+  }
+
+  msgEl.innerHTML = '<p class="success-msg">✅ Password updated! Inform the user of their new password.</p>';
+  setTimeout(() => closeResetModal(), 2000);
+}
+
+function closeResetModal() {
+  document.getElementById('admin-reset-modal').style.display = 'none';
+  activeResetUserId = null;
+}
+
+// ── ADMIN: REJECT ESSAY ───────────────────────────────────────
+function openRejectModal(essayId, essayTitle) {
+  activeRejectEssayId = essayId;
+  document.getElementById('reject-essay-title').innerText = essayTitle;
+  document.getElementById('reject-msg').innerHTML = '';
+  document.getElementById('reject-reason-select').value = '';
+  document.getElementById('reject-reason-other').style.display = 'none';
+  document.getElementById('reject-reason-other').value = '';
+  document.getElementById('reject-modal').style.display = 'block';
+}
+
+async function confirmReject() {
+  const select = document.getElementById('reject-reason-select').value;
+  const other  = document.getElementById('reject-reason-other').value.trim();
+  const reason = select === 'Other' ? other : select;
+  const msgEl  = document.getElementById('reject-msg');
+
+  if (!reason) {
+    msgEl.innerHTML = '<p class="error-msg">Please select or enter a reason.</p>';
+    return;
+  }
+
+  const { error } = await sb
+    .from('essays')
+    .update({ status: 'rejected', rejection_note: reason })
+    .eq('id', activeRejectEssayId);
+
+  if (error) { msgEl.innerHTML = `<p class="error-msg">${error.message}</p>`; return; }
+
+  closeRejectModal();
+  await loadAdminEssays();
+}
+
+function closeRejectModal() {
+  document.getElementById('reject-modal').style.display = 'none';
+  activeRejectEssayId = null;
+}
+
+// ── ADMIN: DELETE ESSAY ───────────────────────────────────────
+async function adminDeleteEssay(essayId, essayTitle) {
+  if (!confirm(`Permanently delete "${essayTitle}"? This cannot be undone.`)) return;
+
+  const { error } = await sb
+    .from('essays')
+    .delete()
+    .eq('id', essayId);
+
+  if (error) { alert('Delete failed: ' + error.message); return; }
+
+  await Promise.all([loadAdminEssays(), loadAdminStats()]);
+}
 </script>
+
 </body>
 </html>
 
