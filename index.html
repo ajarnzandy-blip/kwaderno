@@ -902,8 +902,8 @@ async function performLogin(isTeacher) {
 function afterLogin(user) {
   currentUser = user;
   currentMeta = user.user_metadata || {};
-  const name   = currentMeta.full_name || currentMeta.username || 'User';
-  const role   = currentMeta.role;
+  const name = currentMeta.full_name || currentMeta.username || 'User';
+  const role = currentMeta.role;
 
   if (role === 'reviewer' || role === 'admin') {
     document.getElementById('rev-welcome').innerText = `Hello, ${name}!`;
@@ -911,6 +911,10 @@ function afterLogin(user) {
       document.getElementById('admin-btn').style.display = 'block';
     }
     showPage('reviewer-dash');
+  } else {
+    // Students land here
+    document.getElementById('welcome-msg').innerText = `Welcome, ${name}!`;
+    showPage('writer-dash');
   }
 }
 
