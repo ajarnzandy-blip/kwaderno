@@ -204,7 +204,7 @@
     <div class="notebook-container">
       <input type="text" id="essay-title" class="notebook-title" placeholder="ENTER TITLE HERE" onpaste="showPasteToast(event)" onkeydown="handleTitleEnter(event)">
       <div class="notebook-paper">
-        <textarea id="essay-body" class="notebook-body" placeholder="Start writing your formal theme..." onpaste="showPasteToast(event)" oninput="updateStats()"></textarea>
+        <textarea id="essay-body" class="notebook-body" placeholder="Start writing your formal theme..." onpaste="showPasteToast(event)" oninput="updateStats(); handleTypingScroll(this)"></textarea>
         </div>
     </div>
      <div id="editor-actions" style="margin-top:20px; width:100%; max-width:700px; margin-left:auto; margin-right:auto;">
@@ -379,23 +379,29 @@
  
         <div>
           <small><b style="color:var(--deep-green);">📝 TEACHER'S CORRECTIONS</b> <span style="color:var(--muted); font-weight:400;">(read only)</span></small>
-          <div id="view-corrected-content" style="margin-top:8px; padding:20px; border:2px solid var(--deep-green); border-radius:8px; min-height:400px; line-height:1.8; background:#f9fbf9; white-space:pre-wrap; overflow-y:auto; font-size:0.95rem;">
+          <div id="view-corrected-content" style="margin-top:8px; padding:20px; border:2px solid var(--deep-green); border-radius:8px; min-height:800px; line-height:1.8; background:#f9fbf9; white-space:pre-wrap; overflow-y:auto; font-size:0.95rem;">
           </div>
         </div>
  
         <div>
-          <small><b style="color:var(--deep-gray);">✏️ YOUR REWRITE</b> <span style="color:var(--muted); font-weight:400;">(type your polished version here)</span></small>
-          <textarea id="student-rewrite-body"
-                    style="margin-top:8px; width:100%; min-height:400px; padding:20px; border:2px solid var(--squash); border-radius:8px; font-size:0.95rem; line-height:1.8; resize:vertical; font-family:'Georgia', serif; outline:none;"
-                    placeholder="Rewrite your essay here, incorporating the teacher's corrections…"></textarea>
+            <small><b style="color:var(--deep-gray);">✏️ REVISION BOARD</b> <span style="color:var(--muted); font-weight:400;">(retype your revision here)</span></small>
+  <textarea id="student-rewrite-body"
+            style="margin-top:8px; box-sizing:border-box; max-width:100%; width:100%; min-height:800px; padding:20px; border:2px solid var(--squash); border-radius:8px; font-size:1.1rem; line-height:1.8rem; resize:vertical; font-family:'Palatino Linotype', 'Palatino', serif; outline:none; white-space:pre-wrap; word-wrap:break-word; text-indent:3rem;"
+            placeholder="Rewrite your essay here, incorporating the teacher's corrections…"
+            onkeydown="handleEditorKeys(event)"></textarea>
+<div style="margin-top: 6px; text-align: right;">
+    <small style="color: var(--muted); font-style: italic; font-size: 0.85rem;">
+      💡 Note: Paragraph indents will be automatically applied when you publish.
+    </small>
+  </div>
+</div>
+ 
+      </div>
+ 
+      <div style="display:flex; gap:10px; margin-top:20px; justify-content:center;">
+    <button class="btn-auth" style="background:#888; width:auto; padding:12px 24px;" onclick="closeFeedback()">Close</button>
+    <button class="btn-auth" style="background:var(--squash); color:var(--deep-green); width:auto; padding:12px 24px; font-size:1rem;" onclick="publishEssay()">✅ PUBLISH FINAL VERSION</button>
         </div>
- 
-      </div>
- 
-      <div style="display:flex; gap:10px; margin-top:20px; justify-content:flex-end;">
-        <button class="btn-auth" style="background:#888; width:auto; padding:12px 24px;" onclick="closeFeedback()">Close</button>
-        <button class="btn-auth" style="background:var(--squash); color:var(--deep-green); width:auto; padding:12px 24px; font-size:1rem;" onclick="publishEssay()">✅ PUBLISH FINAL VERSION</button>
-      </div>
     </div>
   </div>
 

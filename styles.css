@@ -139,7 +139,7 @@
     .notebook-container { background: var(--paper); max-width: 800px; margin: 0 auto 2rem auto; padding: 60px 50px; box-shadow: 0 0 20px rgba(0,0,0,0.1); min-height: 800px; border-radius: 0 0 12px 12px; }
     .notebook-paper { background-image: linear-gradient(#e1e1e1 1px, transparent 1px); background-size: 100% 2.5rem; line-height: 2.5rem; }
     .notebook-title { width: 100%; border: none; background: transparent; font-size: 1.8rem; font-weight: 700; text-align: center; margin-bottom: 2rem; outline: none; border-bottom: 2px solid var(--deep-green); font-family: 'Lato', sans-serif; color: var(--deep-green); }
-    .notebook-body { width: 100%; min-height: 600px; border: none; background: transparent; font-size: 1.1rem; line-height: 2.5rem; resize: none; outline: none; white-space: pre-wrap; word-wrap: break-word; font-family: 'Palatino Linotype', 'Palatino', serif;}
+    .notebook-body { width: 100%; min-height: 600px; padding-bottom: 120px; border: none; background: transparent; font-size: 1.1rem; line-height: 2.5rem; resize: none; outline: none; white-space: pre-wrap; word-wrap: break-word; font-family: 'Palatino Linotype', 'Palatino', serif;}
     .cursive-font { font-family: 'Dancing Script', cursive !important; font-size: 1.25rem !important; }
     .essay-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9rem; }
     .essay-table th { text-align: left; padding: 12px; border-bottom: 2px solid var(--border); color: var(--muted); }
@@ -155,13 +155,19 @@
   padding: 20px; 
   border-radius: 8px; 
   border: 2px solid var(--squash); 
-  line-height: 1; 
+  line-height: 1.5;
   min-height: 500px;
   height: auto;
+  
+  max-width: 100%;
+  word-wrap: break-word; 
+  white-space: pre-wrap; 
+  overflow-x: hidden; 
 }
 
 .correction-input { 
   width: 100%; 
+  max-width: 100%;
   min-height: 500px;
   height: auto;
   padding: 20px; 
@@ -171,6 +177,13 @@
   font-size: 1rem; 
   resize: none; 
   outline: none; 
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-x: hidden;
+}
+.review-split > * {
+  min-width: 0;
+  max-width: 100%
 }
     .teacher-notes { width: 100%; margin-top: 15px; padding: 10px; border: 1px dashed #999; border-radius: 6px; font-family: inherit; }
     #completed-list .reviewer-card { opacity: 0.75; border-left-color: #bdc3c7; }

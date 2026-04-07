@@ -371,7 +371,7 @@ async function publishEssay() {
     return;
   }
 
-  const original = (document.getElementById('view-corrected-content')?.innerText || '').trim().replace(/\s+/g, ' ');
+  const original = (document.getElementById('view-corrected_content')?.innerText || '').trim().replace(/\s+/g, ' ');
   const rewrite  = polished.trim().replace(/\s+/g, ' ');
   if (original && original === rewrite) {
     alert('Your rewrite appears unchanged. Please incorporate your teacher\'s corrections before publishing.');
@@ -1476,3 +1476,31 @@ window.addEventListener('popstate', (event) => {
     else { showPage('home', false); } });
 }
 
+function handleEditorKeys(e) {
+    if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = e.target.selectionStart;
+        const end = e.target.selectionEnd;
+        e.target.value = e.target.value.substring(0, start) + "    " + e.target.value.substring(end);
+        e.target.selectionStart = e.target.selectionEnd = start + 9;
+    }
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const start = e.target.selectionStart;
+        const end = e.target.selectionEnd;
+        e.target.value = e.target.value.substring(0, start) + "\n    " + e.target.value.substring(end);
+        e.target.selectionStart = e.target.selectionEnd = start + 9;
+    }
+}
+
+function handleTypingScroll(textarea) {
+    if (textarea.scrollTop > 0) {
+    const isAtBottom = (textarea.scrollHeight - textarea.scrollTop - textarea.clientHeight) < 150; 
+    if (isAtBottom) {
+    const btnContainer = document.getElementById('editor-actions');
+    const rect = btnContainer.getBoundingClientRect();
+    if (rect.bottom > window.innerHeight) { window.scrollBy({ top: rect.bottom - window.innerHeight + 20, behavior: 'smooth' }); 
+      }    
+    }
+  }
+}
