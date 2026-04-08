@@ -15,53 +15,11 @@
             --border: rgba(27, 67, 50, 0.1);
         }
         body { margin: 0; font-family: 'Inter', sans-serif; background: #f4f7f5; color: var(--ink); line-height: 1.6; }
-        
-        header {
-            background: var(--deep-green);
-            color: white;
-            padding: 2.5rem 1rem;
-            text-align: center;
-            position: center; /* Needed for absolute positioning of home button */
-        }
-
-        .nav-home {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255,255,255,0.15);
-            border: 1px solid var(--squash)(255,255,255,0.3);
-            color: var(--squash);
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: 0.2s;
-        }
+        header { background: var(--deep-green); color: white; padding: 2.5rem 1rem; text-align: center; position: relative; }
+        .nav-home { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.15); border: 1px solid var(--squash); color: var(--squash); padding: 8px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
         .nav-home:hover { background: rgba(255,255,255,0.25); transform: translateY(-2px); }
-
-        .brand {
-            font-family: 'Outfit', sans-serif;
-            font-size: 2.8rem;
-            text-transform: lowercase;
-            color: var(--squash);
-            margin: 1rem;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: -2.5rem auto 4rem auto;
-            background: var(--paper);
-            padding: 50px 70px;
-            border-radius: 16px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.07);
-            border: 1px solid var(--border);
-        }
+        .brand { font-family: 'Outfit', sans-serif; font-size: 2.8rem; text-transform: lowercase; color: var(--squash); margin: 1rem; text-decoration: none; display: inline-block; }
+        .container { max-width: 800px; margin: -2.5rem auto 4rem auto; background: var(--paper); padding: 50px 70px; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.07); border: 1px solid var(--border); }
         h1 { color: var(--deep-green); font-family: 'Outfit', sans-serif; font-size: 2.2rem; margin-top: 0; }
         h2 { color: var(--deep-green); border-bottom: 2px solid var(--squash); display: inline-block; margin-top: 2.5rem; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px; }
         p, li { color: var(--muted); font-size: 0.95rem; }
@@ -80,30 +38,33 @@
     </header>
     <div class="container">
         <h1>Terms and Conditions</h1>
-        <span class="last-updated">Last Updated: April 7, 2026</span>
+        <span class="last-updated">Last Updated: April 9, 2026</span>
 
-        <h2>1. Description of Service</h2>
+        <h2>1. Age Eligibility & Safeguarding</h2>
+        <p>Kwaderno is not intended for children aged 13 and below. Users under the age of 18 (minors) may maintain an account; however, the <strong>sole safeguarding duty and supervision of activity</strong> falls entirely upon the parent or legal guardian.</p>
+
+        <h2>2. Description of Service</h2>
         <p>Kwaderno provides a digital environment for the composition, review, and publication of essays. The platform includes Write (cursive-ready workspace), Review (Digital Red Pen), and Grow (revision cycle).</p>
-
-        <h2>2. User Accounts</h2>
-        <p>You are responsible for maintaining the confidentiality of your login credentials and for all activities that occur under your account.</p>
 
         <h2>3. User Roles and Permissions</h2>
         <ul>
-            <li><strong>Students:</strong> May write, submit for review, and publish work.</li>
+            <li><strong>Students:</strong> May write, submit for review, and request publication of work.</li>
             <li><strong>Teachers/Reviewers:</strong> May write, review student work, and publish their own essays directly.</li>
         </ul>
 
-        <h2>4. Intellectual Property</h2>
+        <h2>4. Content Moderation & Admin Rights</h2>
+        <p>To maintain a safe educational environment, the <strong>Administrator reserves the right to pull, un-publish, or remove any essay</strong> that is deemed violative of our community standards or acceptable use policy without prior notice.</p>
+
+        <h2>5. Intellectual Property</h2>
         <p>Users retain ownership of original text. Publishing grants Kwaderno a non-exclusive license to display the work for educational purposes.</p>
 
-        <h2>5. Acceptable Use</h2>
+        <h2>6. Acceptable Use</h2>
         <p>Plagiarism, hate speech, and disruption of service are strictly prohibited and may result in account removal.</p>
 
-        <h2>6. Account Deletion</h2>
-        <p>Email <strong>ajarn.zandy@gmail.com</strong> to delete your account. Data loss is permanent upon processing.</p>
+        <h2>7. Account and Essay Management</h2>
+        <p>Users cannot delete their own essays or accounts directly. To request the removal of a published essay or the permanent deletion of your account, you must contact the admin at: <strong>ajarn.zandy@gmail.com</strong>.</p>
 
-        <h2>7. Limitation of Liability</h2>
+        <h2>8. Limitation of Liability</h2>
         <p>Kwaderno is provided "as-is". We are not liable for data loss or service interruptions.</p>
     </div>
     <footer>© 2026 KWADERNO. All rights reserved.</footer>
