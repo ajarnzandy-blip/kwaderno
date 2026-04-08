@@ -561,11 +561,10 @@ async function loadPublishedLibrary() {
   listEl.innerHTML = '<p style="text-align:center; color:var(--muted);"><span class="spinner-dark"></span> Loading polished works…</p>';
 
   const { data, error } = await sb
-    .from('essays')
-    .select('*, profiles!student_id(username, full_name)')
-    .eq('status', 'published')
-    .order('created_at', { ascending: false });
-
+  .from('essays')
+  .select('*, profiles!student_id(username, full_name)')
+  .eq('status', 'published')
+  .order('published_at', { ascending: false }); // Sort by publication instead
   if (error) {
     listEl.innerHTML = '<p style="color:red; text-align:center;">Could not load essays. Check console.</p>';
     console.error('loadPublishedLibrary:', error);
@@ -624,17 +623,28 @@ async function readFullEssay(essayId) {
     await sb.from('essays').update({ views: (essay.views || 0) + 1 }).eq('id', essayId);
   }
 
-  const date = new Date(essay.created_at).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+  // 1. We define displayDate
+  const displayDate = new Date(essay.published_at || essay.created_at)
+    .toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+
   document.getElementById('full-read-title').innerText = essay.title;
-  document.getElementById('full-read-date').innerText  = date;
+  
+  // 2. FIX: Changed 'date' to 'displayDate' so it matches the variable above
+  document.getElementById('full-read-date').innerText = displayDate; 
+  
   document.getElementById('full-read-author').innerText = essay.profiles?.username || 'Anonymous';
 
   const readPanel = document.getElementById('full-read-body');
-  readPanel.innerHTML = DOMPurify.sanitize(toHTML(essay.revised_body));
+  
+  // 3. SAFETY CHECK: Ensure toHTML exists, otherwise fallback to raw body
+  const content = typeof toHTML === 'function' ? toHTML(essay.revised_body) : essay.revised_body;
+  readPanel.innerHTML = DOMPurify.sanitize(content);
   readPanel.classList.add('essay-content');
 
+  // Show the modal
   document.getElementById('read-modal').style.display = 'block';
 
+  // Background UI update for views
   if (!currentUser || currentUser.id !== essay.student_id) {
     const entry = allPublishedEssays.find(e => e.id === essayId);
     if (entry) {
