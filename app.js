@@ -1304,7 +1304,20 @@ document.addEventListener('change', function(e) {
       e.target.value === 'Other' ? 'block' : 'none';
   }
 });
-
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    // check which page is active, then call the right function
+    if (document.getElementById('login-page').classList.contains('active')) performLogin(false);
+    if (document.getElementById('reviewer-login').classList.contains('active')) performLogin(true);
+    if (document.getElementById('signup-page').classList.contains('active')) performSignup(false);
+    // etc.
+  }
+if (e.key === 'Escape') {
+    closeSettings();
+    closeFeedback();
+    closeNotebook();
+  }
+});
 async function confirmBan() {
   const select = document.getElementById('ban-reason-select').value;
   const other  = document.getElementById('ban-reason-other').value.trim();
