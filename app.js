@@ -170,14 +170,24 @@ async function performLogin(isTeacher) {
 
   if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '<span class="spinner"></span> Logging in…'; }
   msgEl.innerHTML = '';
-  const { data, error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) {
-    // Restore button on failure
-    if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = isTeacher ? 'Login as Reviewer' : 'Login'; }
-    msgEl.innerHTML = `<p class="error-msg">Login failed: ${error.message}</p>`;
-    return;
-  }
+ const { data, error } = await sb.auth.signInWithPassword({ email, password });
+if (error) {
+  if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = isTeacher ? 'Login as Reviewer' : 'Login'; }
+  msgEl.innerHTML = `<p class="error-msg">Login failed: ${error.message}</p>`;
+  return;
+}
 
+const { data: banCheck } = await sb
+  .from('profiles')
+  .select('banned, ban_reason')
+  .eq('id', data.user.id)
+  .single();
+
+if (banCheck?.banned) {
+  await sb.auth.signOut();
+  alert(`Your account has been banned.\n\nReason: ${banCheck.ban_reason}\n\nIf you think this is a mistake, contact ajarn.zandy@gmail.com`);
+  return;
+}
   const role = data.user.user_metadata?.role;
 
   if (isTeacher && role !== 'reviewer' && role !== 'admin') {
@@ -251,7 +261,6 @@ window.addEventListener('DOMContentLoaded', async () => {
 
 async function submitEssay() {
   if (!currentUser) { alert('You must be logged in.'); return; }
-
   const title = document.getElementById('essay-title').value.trim();
   const rawBody = document.getElementById('essay-body').value;
   const body = rawBody
@@ -259,35 +268,55 @@ async function submitEssay() {
     .map(line => line.replace(/[\u00A0\s]+/g, ' ').trim())
     .filter(line => line.length > 0)
     .join('\n');
-
   if (!title) { alert('Please enter a title.'); return; }
   if (!body)  { alert('Please write something before submitting.'); return; }
-
   const wordCount = body.split(/\s+/).filter(Boolean).length;
   if (wordCount < 50)  { alert(`Your essay is only ${wordCount} words. Please write at least 50 words before submitting.`); return; }
   if (wordCount > 900) { alert(`Your essay is ${wordCount} words. Please keep it under 900 words before submitting.`); return; }
-  const { error } = await sb.from('essays').insert([{
+
+  const isVIP = currentUser.role === 'reviewer' || currentUser.role === 'admin' || currentUser.role === 'teacher';
+  const startingStatus = isVIP ? 'published' : 'submitted';
+
+  // Fix 1: set published_at and revised_body when publishing directly
+  const insertPayload = {
     student_id: currentUser.id,
-    title,
-    body,
-    status: 'submitted'
-  }]);
+    title: title,
+    body: body,
+    status: startingStatus,
+    ...(isVIP && {
+      published_at: new Date().toISOString(),
+      revised_body: body  // mirrors body since no review step
+    })
+  };
+
+  const { data, error } = await sb
+    .from('essays')
+    .insert([insertPayload])
+    .select()
+    .single();
+
   if (error) {
     alert(error.message.includes('limit') ? error.message : 'Submit failed: ' + error.message);
     return;
   }
 
+  if (data.status === 'published') {
+    alert('Success! Since you are a reviewer, your essay has been published directly to the website! ✅');
+  } else if (data.status === 'assigned') {
+    alert('Success! Your essay has been submitted and assigned to a reviewer.');
+  } else {
+    alert('Success! Your essay is now on the waiting list for the next available reviewer.');
+  }
+
   document.getElementById('essay-title').value = '';
   document.getElementById('essay-body').value = '';
   document.getElementById('word-num').innerText = '0';
-
   clearDraft();
   if (window._autosaveTimer) clearInterval(window._autosaveTimer);
   window.onbeforeunload = null;
-  alert('Essay submitted for review!');
+
   showPage('writer-dash');
 }
-
 async function fetchUserEssays() {
   if (!currentUser) return;
 
@@ -309,19 +338,40 @@ async function fetchUserEssays() {
     returned:  'Returned ✉️',
     rewriting: 'Rewriting',
     published: 'Published ✅',
-    rejected:  'Rejected ❌'
+    pulled:    'Pulled 🚩'
   };
+
   tbody.innerHTML = essays.length === 0
     ? '<tr><td colspan="3" style="text-align:center; color:var(--muted);">No essays yet. Write one!</td></tr>'
-    : essays.map(e => `
-        <tr onclick="${e.status === 'published' ? `viewPublishedEssay('${e.id}')` : `openStudentEssay('${e.id}','${e.status}')`}" style="cursor:pointer;" title="Click to open">
-          <td><b>${e.title}</b></td>
-          <td>${new Date(e.created_at).toLocaleDateString()}</td>
-          <td><span class="status-pill">${statusLabel[e.status] || e.status}</span></td>
-        </tr>
-      `).join('');
-}
+    : essays.map(e => {
+        // 1. Build the standard row
+        let rowHtml = `
+          <tr onclick="${e.status === 'published' ? `viewPublishedEssay('${e.id}')` : `openStudentEssay('${e.id}','${e.status}')`}" style="cursor:pointer;" title="Click to open">
+            <td><b>${e.title}</b></td>
+            <td>${new Date(e.created_at).toLocaleDateString()}</td>
+            <td><span class="status-pill">${statusLabel[e.status] || e.status}</span></td>
+          </tr>
+        `;
 
+        // 2. If it is pulled, append the extra warning row underneath!
+        if (e.status === 'pulled') {
+          rowHtml += `
+            <tr style="background-color: #ffeaea; cursor: default;">
+              <td colspan="3" style="padding: 10px; border-left: 4px solid #e74c3c;">
+                <p style="color: #c0392b; margin: 0 0 5px 0; font-size: 0.85rem;"><strong>⚠️ Admin Note:</strong> ${e.pulled_reason || 'No reason provided.'}</p>
+                <div>
+                  <button onclick="editPulledEssay('${e.id}')" style="background:#2D6A4F; color:white; padding:4px 10px; border:none; border-radius:4px; cursor:pointer; font-size:0.8rem;">✏️ Edit</button>
+                  <button onclick="discardPulledEssay('${e.id}')" style="background:#e74c3c; color:white; padding:4px 10px; border:none; border-radius:4px; cursor:pointer; margin-left:10px; font-size:0.8rem;">🗑️ Discard</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }
+
+        // 3. Return the combined HTML back to the map function
+        return rowHtml;
+      }).join('');
+}
 async function openStudentEssay(essayId, status) {
   if (status !== 'returned' && status !== 'rewriting') {
     alert(`This essay is currently "${status}". You can only open Returned essays.`);
@@ -394,17 +444,23 @@ async function publishEssay() {
 }
 
 async function viewPublishedEssay(essayId) {
-  const { data: essay, error } = await sb.from('essays').select('*, profiles!student_id(username, full_name)').eq('id', essayId).single();
+  const { data: essay, error } = await sb
+    .from('essays')
+    .select(`
+      *,
+      student:profiles!student_id(username, full_name),
+      teacher:profiles!teacher_id(username, full_name)
+    `) // Fix 1: join both profiles like loadPublishedLibrary
+    .eq('id', essayId)
+    .single();
+
   if (error) { alert('Could not load essay.'); return; }
 
+  // Fix 2: author resolved from either profile
+  const authorProfile = essay.student || essay.teacher;
+  const author = authorProfile?.full_name || authorProfile?.username || 'Anonymous';
+
   const win = window.open('', '_blank');
-  const printBody = (essay.revised_body || '')
-    .replace(/<[^>]*>/g, '')
-    .split('\n')
-    .map(line => line.trim())
-    .filter(line => line.length > 0)
-    .map(line => `<p>${line}</p>`)
-    .join('');
 
   win.document.write(`
     <!DOCTYPE html>
@@ -419,33 +475,48 @@ async function viewPublishedEssay(essayId) {
         .body { font-size: 1.1rem; }
         .essay-content p { text-indent: 1in; margin: 0; line-height: 2.5rem; font-family: 'Palatino Linotype', 'Palatino', serif; font-size: 1.1rem; }
         .print-btn { display: block; margin: 30px auto; padding: 10px 30px; background: #1B4332; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; }
-       @media print { .print-btn { display: none; } }
+        @media print { .print-btn { display: none; } }
       </style>
     </head>
     <body>
       <h1>${essay.title}</h1>
-      <p class="meta">By <b>${essay.profiles?.full_name || essay.profiles?.username || 'Anonymous'}</b></p>
-      
-      <p class="meta">Published on ${new Date(essay.published_at).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' })}</p>
-      
+      <p class="meta">By <b>${author}</b></p>
+      <p class="meta">Published on ${new Date(essay.published_at || essay.created_at).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' })}</p>
       <div class="body essay-content">${toHTML(essay.revised_body || essay.body)}</div>
-      
       <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
-
-      </body>
+    </body>
     </html>
   `);
   win.document.close();
 }
-
 async function loadTeacherDashboard() {
   if (!currentUser) return;
 
-  const { data: essays, error } = await sb
-    .from('essays')
-    .select('*')
-    .or(`teacher_id.eq.${currentUser.id},status.eq.submitted`)
-    .order('created_at', { ascending: false });
+  // 1. Fetch the reviewer's true availability from the database
+  const { data: profile } = await sb
+    .from('profiles')
+    .select('is_available')
+    .eq('id', currentUser.id)
+    .single();
+
+  // Sync the UI Checkbox so it accurately reflects the database
+  const availCheckbox = document.getElementById('rev-avail');
+  if (profile && availCheckbox) {
+    availCheckbox.checked = profile.is_available;
+  }
+
+  // 2. Adjust which essays they see based on their availability
+  let query = sb.from('essays').select('*').order('created_at', { ascending: false });
+
+  if (profile && profile.is_available === false) {
+    // If UNAVAILABLE: Only show essays they are already reviewing or have returned
+    query = query.eq('teacher_id', currentUser.id);
+  } else {
+    // If AVAILABLE: Show their assigned essays PLUS all new unassigned essays
+    query = query.or(`teacher_id.eq.${currentUser.id},status.eq.submitted`);
+  }
+
+  const { data: essays, error } = await query;
 
   if (error) { console.error('loadTeacherDashboard:', error); return; }
 
@@ -561,10 +632,15 @@ async function loadPublishedLibrary() {
   listEl.innerHTML = '<p style="text-align:center; color:var(--muted);"><span class="spinner-dark"></span> Loading polished works…</p>';
 
   const { data, error } = await sb
-  .from('essays')
-  .select('*, profiles!student_id(username, full_name)')
-  .eq('status', 'published')
-  .order('published_at', { ascending: false }); // Sort by publication instead
+    .from('essays')
+    .select(`
+  *,
+  student:profiles!student_id(username, full_name),
+  teacher:profiles!teacher_id(username, full_name)
+`)
+    .eq('status', 'published')
+    .order('published_at', { ascending: false });
+
   if (error) {
     listEl.innerHTML = '<p style="color:red; text-align:center;">Could not load essays. Check console.</p>';
     console.error('loadPublishedLibrary:', error);
@@ -581,15 +657,23 @@ function renderLibrary(essays) {
     listEl.innerHTML = '<p style="text-align:center; color:var(--muted);">No published essays yet. Be the first!</p>';
     return;
   }
+
   listEl.innerHTML = essays.map(e => {
-   const date = new Date(e.published_at || e.created_at).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
-   const preview = DOMPurify.sanitize((e.revised_body || '').replace(/<[^>]*>/g, '').replace(/[\u00A0]/g, ' ').substring(0, 150));
+    const date = new Date(e.published_at || e.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    const rawBody = e.revised_body || e.body || '';
+    const preview = DOMPurify.sanitize(rawBody.replace(/<[^>]*>/g, '').replace(/[\u00A0]/g, ' ').substring(0, 150));
+
+    // Use student as author first, fall back to teacher if no student
+    const authorProfile = e.student || e.teacher;
+    const author = authorProfile?.full_name || authorProfile?.username || 'Anonymous';
+
     return `
       <div class="essay-card">
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
           <div>
             <h3 style="margin:0 0 5px 0; color:var(--deep-green);">${DOMPurify.sanitize(e.title)}</h3>
-           <span style="font-size:0.8rem; color:var(--muted);">By <b>${e.profiles?.username || 'Anonymous'}</b> · Published on <b>${date}</b></span>
+            <span style="font-size:0.8rem; color:var(--muted);">By <b>${author}</b> · Published on <b>${date}</b></span>
           </div>
           <div data-essay-id="${e.id}" style="background:var(--paper); padding:4px 10px; border-radius:20px; border:1px solid var(--border); font-size:0.75rem; font-weight:700; color:var(--deep-green); white-space:nowrap;">
             👁️ ${e.views || 0} Views
@@ -616,36 +700,47 @@ function sortEssays(val) {
 }
 
 async function readFullEssay(essayId) {
-  const { data: essay, error } = await sb.from('essays').select('*, profiles!student_id(username, full_name)').eq('id', essayId).single();
+  const { data: essay, error } = await sb
+    .from('essays')
+    .select(`
+      *,
+      student:profiles!student_id(username, full_name),
+      teacher:profiles!teacher_id(username, full_name)
+    `) // Fix 2: dual join
+    .eq('id', essayId)
+    .single();
+
   if (error) { alert('Could not load essay.'); return; }
 
-  if (!currentUser || currentUser.id !== essay.student_id) {
-    await sb.from('essays').update({ views: (essay.views || 0) + 1 }).eq('id', essayId);
+  // Fix 1: use RPC instead of direct update to avoid 403
+  const isOwnEssay = currentUser && currentUser.id === essay.student_id;
+  if (!isOwnEssay) {
+    await sb.rpc('increment_views', { essay_id: essayId });
   }
 
-  // 1. We define displayDate
   const displayDate = new Date(essay.published_at || essay.created_at)
-    .toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+    .toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  // Fix 4: full_name fallback
+  const authorProfile = essay.student || essay.teacher;
+  const author = authorProfile?.full_name || authorProfile?.username || 'Anonymous';
 
   document.getElementById('full-read-title').innerText = essay.title;
-  
-  // 2. FIX: Changed 'date' to 'displayDate' so it matches the variable above
-  document.getElementById('full-read-date').innerText = displayDate; 
-  
-  document.getElementById('full-read-author').innerText = essay.profiles?.username || 'Anonymous';
+  document.getElementById('full-read-date').innerText = displayDate;
+  document.getElementById('full-read-author').innerText = author;
 
   const readPanel = document.getElementById('full-read-body');
-  
-  // 3. SAFETY CHECK: Ensure toHTML exists, otherwise fallback to raw body
-  const content = typeof toHTML === 'function' ? toHTML(essay.revised_body) : essay.revised_body;
+
+  // Fix 3: fallback to body if revised_body is null
+  const rawContent = essay.revised_body || essay.body || '';
+  const content = typeof toHTML === 'function' ? toHTML(rawContent) : rawContent;
   readPanel.innerHTML = DOMPurify.sanitize(content);
   readPanel.classList.add('essay-content');
 
-  // Show the modal
   document.getElementById('read-modal').style.display = 'block';
 
   // Background UI update for views
-  if (!currentUser || currentUser.id !== essay.student_id) {
+  if (!isOwnEssay) {
     const entry = allPublishedEssays.find(e => e.id === essayId);
     if (entry) {
       entry.views = (entry.views || 0) + 1;
@@ -819,7 +914,7 @@ async function loadTeacherResources() {
     return;
   }
 
-  ul.innerHTML = data.map(r => `
+ul.innerHTML = data.map(r => `
     <li style="display:flex; align-items:center; margin-bottom:4px; width:100%; list-style:none;">
       
       <a href="${r.url}" target="_blank" rel="noopener noreferrer"
@@ -828,16 +923,8 @@ async function loadTeacherResources() {
          onmouseout="this.style.background='transparent'">
         🔗 ${r.title}
       </a>
-
-      <button onclick="deleteResource('${r.id}')"
-              style="background:none; border:none; color:#c0392b; cursor:pointer; font-size:1.1rem; padding:8px 12px; opacity:0.5; flex-shrink:0; transition:opacity 0.2s;"
-              onmouseover="this.style.opacity='1'; this.style.transform='scale(1.1)'"
-              onmouseout="this.style.opacity='0.5'; this.style.transform='scale(1)'"
-              title="Delete">
-        🗑️
-      </button>
-
-    </li>
+      
+      </li>
   `).join('');
 }
 async function publishResource() {
@@ -951,8 +1038,8 @@ async function loadReviewerNotifications() {
   }
 
   const grammar = count === 1
-    ? '1 NEW ESSAY HAS BEEN ASSIGNED TO YOU.'
-    : `${count} NEW ESSAYS HAVE BEEN ASSIGNED TO YOU.`;
+    ? '1 NEW ESSAY HAS BEEN ASSIGNED TO YOU.📥'
+    : `${count} NEW ESSAYS HAVE BEEN ASSIGNED TO YOU.📥`;
 
   banner.innerHTML = `<span>${grammar}</span>`;
   banner.style.display = 'block';
@@ -1127,7 +1214,6 @@ async function sendPasswordReset() {
 
 let allAdminUsers = [];
 let activeBanUserId = null;
-let activeRejectEssayId = null;
 let activeResetUserId = null;
 
 async function loadAdminPanel() {
@@ -1186,11 +1272,11 @@ function renderAdminUsers(users) {
         </div>
         <div style="display:flex; flex-direction:column; gap:5px; flex-shrink:0;">
           ${u.role !== 'admin' ? `
-            <button onclick="openBanModal('${u.uid}', '${(u.full_name || u.username || '').replace(/'/g, '')}')" 
+            <button onclick="openBanModal('${u.id}', '${(u.full_name || u.username || '').replace(/'/g, '')}')" 
               style="font-size:0.75rem; padding:4px 8px; border-radius:5px; border:none; cursor:pointer; background:${u.banned ? '#27ae60' : '#c0392b'}; color:white; font-weight:700;">
               ${u.banned ? 'Unban' : 'Ban'}
             </button>
-            <button onclick="openResetModal('${u.uid}', '${(u.full_name || u.username || '').replace(/'/g, '')}')"
+            <button onclick="openResetModal('${u.id}', '${(u.full_name || u.username || '').replace(/'/g, '')}')"
               style="font-size:0.75rem; padding:4px 8px; border-radius:5px; border:1px solid #ddd; cursor:pointer; background:white; color:var(--deep-green); font-weight:700;">
               🔑 Reset
             </button>
@@ -1271,26 +1357,16 @@ function closeAdminEssayModal() {
   document.getElementById('admin-essay-modal').style.display = 'none';
   adminActiveEssayId = null;
 }
-
-async function adminDeleteFromModal() {
+function adminDeleteFromModal() {
   if (!adminActiveEssayId) return;
   const title = document.getElementById('admin-essay-modal-title').innerText;
-  if (!confirm(`Permanently delete "${title}"? This cannot be undone.`)) return;
-
-  const { error } = await sb
-    .from('essays')
-    .delete()
-    .eq('id', adminActiveEssayId);
-
-  if (error) { alert('Delete failed: ' + error.message); return; }
-
+  const essayId = adminActiveEssayId; // ← save it first
   closeAdminEssayModal();
-  await Promise.all([loadAdminEssays(), loadAdminStats()]);
+  openPullModal(essayId, title); // ← use saved value
 }
-
 function openBanModal(userId, userName) {
   activeBanUserId = userId;
-  const user = allAdminUsers.find(u => u.uid === userId);
+  const user = allAdminUsers.find(u => u.id === userId);
   document.getElementById('ban-user-name').innerText = userName;
   document.getElementById('ban-msg').innerHTML = '';
   document.getElementById('ban-reason-select').value = '';
@@ -1309,8 +1385,8 @@ document.addEventListener('change', function(e) {
     document.getElementById('ban-reason-other').style.display =
       e.target.value === 'Other' ? 'block' : 'none';
   }
-  if (e.target.id === 'reject-reason-select') {
-    document.getElementById('reject-reason-other').style.display =
+  if (e.target.id === 'pull-reason-select') {
+    document.getElementById('pull-reason-other').style.display =
       e.target.value === 'Other' ? 'block' : 'none';
   }
 });
@@ -1328,24 +1404,22 @@ if (e.key === 'Escape') {
     closeNotebook();
   }
 });
+
 async function confirmBan() {
+  console.log('activeBanUserId:', activeBanUserId); // keep this line only for now
   const select = document.getElementById('ban-reason-select').value;
   const other  = document.getElementById('ban-reason-other').value.trim();
   const reason = select === 'Other' ? other : select;
   const msgEl  = document.getElementById('ban-msg');
-
   if (!reason) {
     msgEl.innerHTML = '<p class="error-msg">Please select or enter a reason.</p>';
     return;
   }
-
   const { error } = await sb
     .from('profiles')
     .update({ banned: true, ban_reason: reason })
-    .eq('uid', activeBanUserId);
-
+    .eq('id', activeBanUserId);
   if (error) { msgEl.innerHTML = `<p class="error-msg">${error.message}</p>`; return; }
-
   closeBanModal();
   await Promise.all([loadAdminUsers(), loadAdminStats()]);
 }
@@ -1354,7 +1428,7 @@ async function unbanUser(userId) {
   const { error } = await sb
     .from('profiles')
     .update({ banned: false, ban_reason: null })
-    .eq('uid', userId);
+    .eq('id', userId);
 
   if (error) { alert('Unban failed: ' + error.message); return; }
   await Promise.all([loadAdminUsers(), loadAdminStats()]);
@@ -1400,7 +1474,7 @@ async function confirmAdminPasswordReset() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session.access_token}`
       },
-      body: JSON.stringify({ targetUid: activeResetUserId, newPassword: np })
+      body: JSON.stringify({ targetid: activeResetUserId, newPassword: np })
     }
   );
 
@@ -1417,61 +1491,84 @@ function closeResetModal() {
   document.getElementById('admin-reset-modal').style.display = 'none';
   activeResetUserId = null;
 }
-
-function openRejectModal(essayId, essayTitle) {
-  activeRejectEssayId = essayId;
-  document.getElementById('reject-essay-title').innerText = essayTitle;
-  document.getElementById('reject-msg').innerHTML = '';
-  document.getElementById('reject-reason-select').value = '';
-  document.getElementById('reject-reason-other').style.display = 'none';
-  document.getElementById('reject-reason-other').value = '';
-  document.getElementById('reject-modal').style.display = 'block';
+function showPasteToast(e) {
+  if (e) e.preventDefault();
+  const toast = document.getElementById('paste-toast');
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
 }
+let activePullEssayId = null;
 
-async function confirmReject() {
-  const select = document.getElementById('reject-reason-select').value;
-  const other  = document.getElementById('reject-reason-other').value.trim();
+function openPullModal(essayId, essayTitle) {
+  activePullEssayId = essayId; 
+  document.getElementById('pull-essay-title').innerText = essayTitle;
+  document.getElementById('pull-msg').innerHTML = '';
+  document.getElementById('pull-reason-select').value = '';
+  document.getElementById('pull-reason-other').style.display = 'none';
+  document.getElementById('pull-reason-other').value = '';
+  document.getElementById('pull-modal').style.display = 'block'; } 
+
+async function confirmPull() {
+  const select = document.getElementById('pull-reason-select').value;
+  const other  = document.getElementById('pull-reason-other').value.trim();
   const reason = select === 'Other' ? other : select;
-  const msgEl  = document.getElementById('reject-msg');
+  const msgEl  = document.getElementById('pull-msg');
 
   if (!reason) {
     msgEl.innerHTML = '<p class="error-msg">Please select or enter a reason.</p>';
     return;
   }
 
+  // THE NEW FIX: Send it back to the student!
   const { error } = await sb
     .from('essays')
-    .update({ status: 'rejected', rejection_note: reason })
-    .eq('id', activeRejectEssayId);
+    .update({ 
+      status: 'pulled',       // Routes it to the student dashboard
+      teacher_id: null,       // Fires the inactive teacher
+      pulled_reason: reason   // Saves the explanation
+    })
+    .eq('id', activePullEssayId);
 
   if (error) { msgEl.innerHTML = `<p class="error-msg">${error.message}</p>`; return; }
 
-  closeRejectModal();
-  await loadAdminEssays();
+  closePullModal();
+  alert('Success! The essay was pulled and returned to the student.');
+  await Promise.all([loadAdminEssays(), loadAdminStats()]);
 }
-
-function closeRejectModal() {
-  document.getElementById('reject-modal').style.display = 'none';
-  activeRejectEssayId = null;
+function closePullModal() {
+  document.getElementById('pull-modal').style.display = 'none';
+  activePullEssayId = null;
 }
-
-async function adminDeleteEssay(essayId, essayTitle) {
-  if (!confirm(`Permanently delete "${essayTitle}"? This cannot be undone.`)) return;
+async function discardPulledEssay(essayId) {
+  const confirmDiscard = confirm("Are you sure you want to discard this essay? It will be sent to the shadow realm forever.");
+  if (!confirmDiscard) return;
 
   const { error } = await sb
     .from('essays')
     .delete()
     .eq('id', essayId);
 
-  if (error) { alert('Delete failed: ' + error.message); return; }
-
-  await Promise.all([loadAdminEssays(), loadAdminStats()]);
+  if (error) {
+    alert('Failed to discard essay: ' + error.message);
+  } else {
+    alert('Essay successfully discarded!');
+    // Reload the student dashboard so the deleted essay disappears
+    // (Replace with your actual dashboard load function if it's named differently!)
+    loadStudentDashboard(); 
+  }
 }
-function showPasteToast(e) {
-  if (e) e.preventDefault();
-  const toast = document.getElementById('paste-toast');
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 2500);
+async function editPulledEssay(essayId) {
+  // 1. Change the status so it's officially back in draft/rewriting mode
+  const { error } = await sb
+    .from('essays')
+    .update({ status: 'rewriting' }) // Change to 'draft' or whatever you use!
+    .eq('id', essayId);
+
+  if (error) {
+    alert('Failed to open essay for editing: ' + error.message);
+    return;
+  }
+  openStudentEssay(essayId, 'rewriting');
 }
 function prepareAndPrint() {
     const body = document.getElementById('essay-body');
@@ -1516,11 +1613,11 @@ async function publishTeacherEssay() {
         btn.disabled = false;
         btn.innerHTML = '🌐 PUBLISH TO WEBSITE';
     }
+}
 
 window.addEventListener('popstate', (event) => {
     if (event.state && event.state.page) { showPage(event.state.page, false); } 
     else { showPage('home', false); } });
-}
 
 function handleEditorKeys(e) {
     if (e.key === 'Tab') {
@@ -1538,7 +1635,48 @@ function handleEditorKeys(e) {
         e.target.selectionStart = e.target.selectionEnd = start + 9;
     }
 }
+function filterAdminEssays(query) {
+  const q = query.toLowerCase();
+  
+  // Grab all the essay items currently rendered in the admin list
+  const essayItems = document.getElementById('admin-essays-published').children;
 
+  for (let i = 0; i < essayItems.length; i++) {
+    const item = essayItems[i];
+    
+    // Skip the "Loading..." text if it's there
+    if (item.tagName === 'P') continue; 
+    
+    // Check if the title inside this item matches the search query
+    const title = item.innerText.toLowerCase();
+    
+    if (title.includes(q)) {
+      item.style.display = ''; // Show it
+    } else {
+      item.style.display = 'none'; // Hide it
+    }
+  }
+}
+async function toggleAvailability(isAvailable) {
+  if (!currentUser) return;
+
+  // Assuming you have an 'is_available' boolean column in your profiles table
+  const { error } = await sb
+    .from('profiles')
+    .update({ is_available: isAvailable }) 
+    .eq('id', currentUser.id); 
+
+  if (error) {
+    console.error('Error updating availability:', error);
+    
+    // Un-check (or re-check) the box visually if the database update fails
+    document.getElementById('rev-avail').checked = !isAvailable;
+    alert('Failed to save availability status: ' + error.message);
+  } else {
+    // Optional: You can show a little toast or console log to confirm it worked
+    console.log('Reviewer availability set to:', isAvailable);
+  }
+}
 function handleTypingScroll(textarea) {
     if (textarea.scrollTop > 0) {
     const isAtBottom = (textarea.scrollHeight - textarea.scrollTop - textarea.clientHeight) < 150; 
