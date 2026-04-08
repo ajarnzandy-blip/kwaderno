@@ -50,8 +50,7 @@ function showPage(pageId, saveToHistory = true) {
       loadReviewerNotifications()
     ]);
   }
-    if (addToHistory) { window.history.pushState({ page: pageId }, "", `#${pageId}`);
-    }
+ if (saveToHistory) { window.history.pushState({ page: pageId }, "", `#${pageId}`); }
 }
 
 function openTeacherNotebook() {
@@ -345,8 +344,9 @@ async function openStudentEssay(essayId, status) {
     : toHTML(essay.body);
   corrPanel.classList.add('essay-content');
  
-  const cleanBody = (essay.body || '').replace(/<[^>]*>/g, '');
-  document.getElementById('student-rewrite-body').value = cleanBody;
+  // in openStudentEssay()
+const cleanBody = (essay.body || '').replace(/<[^>]*>/g, '');
+document.getElementById('student-rewrite-body').value = cleanBody;
   document.getElementById('student-rewrite-body').classList.add('essay-content');
 
   document.getElementById('feedback-modal').style.display = 'block';
@@ -371,7 +371,7 @@ async function publishEssay() {
     return;
   }
 
-  const original = (document.getElementById('view-corrected_content')?.innerText || '').trim().replace(/\s+/g, ' ');
+  const original = (document.getElementById('view-corrected-content')?.innerText || '').trim().replace(/\s+/g, ' ');
   const rewrite  = polished.trim().replace(/\s+/g, ' ');
   if (original && original === rewrite) {
     alert('Your rewrite appears unchanged. Please incorporate your teacher\'s corrections before publishing.');
@@ -382,7 +382,7 @@ async function publishEssay() {
  
   const { error } = await sb.from('essays').update({
     status: 'published',
-    body:   polished,
+    revised_body:   polished,
     published_at: new Date().toISOString()
   }).eq('id', activeEssayId);
  
@@ -398,7 +398,7 @@ async function viewPublishedEssay(essayId) {
   if (error) { alert('Could not load essay.'); return; }
 
   const win = window.open('', '_blank');
-  const printBody = (essay.body || '')
+  const printBody = (essay.revised_body || '')
     .replace(/<[^>]*>/g, '')
     .split('\n')
     .map(line => line.trim())
@@ -419,18 +419,20 @@ async function viewPublishedEssay(essayId) {
         .body { font-size: 1.1rem; }
         .essay-content p { text-indent: 1in; margin: 0; line-height: 2.5rem; font-family: 'Palatino Linotype', 'Palatino', serif; font-size: 1.1rem; }
         .print-btn { display: block; margin: 30px auto; padding: 10px 30px; background: #1B4332; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; }
-        @media print { .print-btn { display: none; } }
+       @media print { .print-btn { display: none; } }
       </style>
     </head>
     <body>
       <h1>${essay.title}</h1>
       <p class="meta">By <b>${essay.profiles?.full_name || essay.profiles?.username || 'Anonymous'}</b></p>
-      <p class="meta">Published on ${new Date(essay.created_at).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' })}</p>
-      <div class="body essay-content">${toHTML(essay.body)}</div>
+      
+      <p class="meta">Published on ${new Date(essay.published_at).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' })}</p>
+      
+      <div class="body essay-content">${toHTML(essay.revised_body || essay.body)}</div>
+      
       <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
-<div id="paste-toast" class="paste-toast">✋ Paste is disabled — Kwaderno encourages original writing.</div>
 
-    </body>
+      </body>
     </html>
   `);
   win.document.close();
@@ -508,21 +510,34 @@ async function openReviewEditor(essayId) {
   activeEssayId = essayId;
   document.getElementById('editing-title').innerText = `Proofreading: ${essay.title}`;
 
+  // 1. LEFT PANEL: Shows the student's original text (Read-only)
   const origPanel = document.getElementById('student-original-content');
-  const cleanBody = essay.body.split('\n').map(para => `<p>${para}</p>`).join('');
-  origPanel.innerHTML = DOMPurify.sanitize(cleanBody);
+  // Use toHTML to ensure the original body shows up with proper line breaks
+  origPanel.innerHTML = DOMPurify.sanitize(toHTML(essay.body));
   origPanel.classList.add('essay-content');
 
+  // 2. RIGHT PANEL (Reviewer Panel): This is where the teacher edits
   const box = document.getElementById('teacher-correction-content');
- if (essay.corrected_content) {
+  
+  // PROBLEM WAS HERE: It was looking for revised_body. 
+  // FIX: If the teacher already saved progress, use corrected_content.
+  // Otherwise, use the original student 'body' so the teacher has text to edit.
+  if (essay.corrected_content) {
     box.innerHTML = DOMPurify.sanitize(essay.corrected_content);
   } else {
-    box.innerHTML = toHTML(essay.body);
+    // This loads the student's original work into the editable box
+    box.innerHTML = toHTML(essay.body); 
   }
 
   document.getElementById('teacher-comments').value = essay.teacher_notes || '';
 
   showPage('review-editor');
+}
+
+// Ensure this helper function exists to handle the text-to-html conversion
+function toHTML(text) {
+  if (!text) return "";
+  return text.split('\n').map(para => `<div>${para}</div>`).join('');
 }
 
 async function saveReview() {
@@ -569,7 +584,7 @@ function renderLibrary(essays) {
   }
   listEl.innerHTML = essays.map(e => {
    const date = new Date(e.published_at || e.created_at).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
-   const preview = DOMPurify.sanitize((e.body || '').replace(/<[^>]*>/g, '').replace(/[\u00A0]/g, ' ').substring(0, 150));
+   const preview = DOMPurify.sanitize((e.revised_body || '').replace(/<[^>]*>/g, '').replace(/[\u00A0]/g, ' ').substring(0, 150));
     return `
       <div class="essay-card">
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
@@ -615,7 +630,7 @@ async function readFullEssay(essayId) {
   document.getElementById('full-read-author').innerText = essay.profiles?.username || 'Anonymous';
 
   const readPanel = document.getElementById('full-read-body');
-  readPanel.innerHTML = DOMPurify.sanitize(toHTML(essay.body));
+  readPanel.innerHTML = DOMPurify.sanitize(toHTML(essay.revised_body));
   readPanel.classList.add('essay-content');
 
   document.getElementById('read-modal').style.display = 'block';
@@ -755,7 +770,7 @@ function renderStudentResources() {
     <li style="margin-bottom:6px;">
       <a href="${r.url}" target="_blank" rel="noopener noreferrer"
          style="display:block; padding:8px 10px; border-radius:6px; border:1px solid var(--border); text-decoration:none; color:var(--deep-green); font-size:0.85rem; transition:background 0.2s;"
-         onmouseover="this.style.background='var(--squash)'"
+         onmouseover="this.style.background='#e3f2fd'"
          onmouseout="this.style.background='transparent'">
         🔗 ${r.title}
       </a>
@@ -783,30 +798,38 @@ async function loadTeacherResources() {
   const { data, error } = await sb
     .from('resources')
     .select('*')
-    .eq('teacher_id', currentUser.id)
- 
+    .eq('teacher_id', currentUser.id);
+
   if (error) { console.error('loadTeacherResources:', error); return; }
- 
+
   const ul = document.getElementById('teacher-resource-list');
- 
+
   if (!data || data.length === 0) {
-    ul.innerHTML = '<li style="color:var(--muted);">No links posted yet.</li>';
+    ul.innerHTML = '<li style="color:var(--muted); font-size:0.85rem;">No links posted yet.</li>';
     return;
   }
- 
+
   ul.innerHTML = data.map(r => `
-    <li style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:6px;">
+    <li style="display:flex; align-items:center; margin-bottom:4px; width:100%; list-style:none;">
+      
       <a href="${r.url}" target="_blank" rel="noopener noreferrer"
-         style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--deep-green);">
-        ${r.title}
+         style="flex:1; padding:8px 10px; text-decoration:none; color:var(--deep-green); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border-radius:6px; transition:background 0.2s;"
+         onmouseover="this.style.background='#e3f2fd'" 
+         onmouseout="this.style.background='transparent'">
+        🔗 ${r.title}
       </a>
+
       <button onclick="deleteResource('${r.id}')"
-              style="background:none; border:none; color:#c0392b; cursor:pointer; font-size:1rem; flex-shrink:0;"
-              title="Delete">🗑️</button>
+              style="background:none; border:none; color:#c0392b; cursor:pointer; font-size:1.1rem; padding:8px 12px; opacity:0.5; flex-shrink:0; transition:opacity 0.2s;"
+              onmouseover="this.style.opacity='1'; this.style.transform='scale(1.1)'"
+              onmouseout="this.style.opacity='0.5'; this.style.transform='scale(1)'"
+              title="Delete">
+        🗑️
+      </button>
+
     </li>
   `).join('');
 }
- 
 async function publishResource() {
   const title  = document.getElementById('new-link-title').value.trim();
   const url    = document.getElementById('new-link-url').value.trim();
@@ -1214,7 +1237,7 @@ async function openAdminEssayModal(essayId) {
 
   const { data: essay, error } = await sb
     .from('essays')
-    .select('id, title, body, corrected_content')
+    .select('id, title, body, corrected_content, revised_body')
     .eq('id', essayId)
     .single();
 
@@ -1228,7 +1251,7 @@ async function openAdminEssayModal(essayId) {
     : '<p style="color:var(--muted); font-style:italic;">No corrections recorded.</p>';
 
   const pubPanel = document.getElementById('admin-essay-published');
-  pubPanel.innerHTML = DOMPurify.sanitize(toHTML(essay.body));
+  pubPanel.innerHTML = DOMPurify.sanitize(toHTML(essay.revised_body));
   pubPanel.classList.add('essay-content');
 
   document.getElementById('admin-essay-modal').style.display = 'block';

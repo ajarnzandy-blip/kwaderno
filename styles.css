@@ -104,7 +104,55 @@
       text-align: center;
       max-width:800px;
       margin: 0 auto;
-    }
+}
+.has-tooltip {
+  position: relative;
+}
+
+.has-tooltip::after {
+  content: attr(data-note);
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: var(--deep-gray);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  text-transform: none;
+  width: 200px;
+  line-height: 1.2;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease-in-out;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.has-tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--deep-gray);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease-in-out;
+  z-index: 100;
+}
+
+.has-tooltip:hover::after,
+.has-tooltip:hover::before {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
     .how h3 { color: var(--deep-green); font-size: 1.5rem; margin: 0 0 0.2rem 0; font-weight: 800; }
     .how-sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 1.0rem; display: block; }
     .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px; }
@@ -138,7 +186,31 @@
     .editor-toolbar { background: #e9ecef; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0; max-width: 800px; margin: 0 auto; }
     .notebook-container { background: var(--paper); max-width: 800px; margin: 0 auto 2rem auto; padding: 60px 50px; box-shadow: 0 0 20px rgba(0,0,0,0.1); min-height: 800px; border-radius: 0 0 12px 12px; }
     .notebook-paper { background-image: linear-gradient(#e1e1e1 1px, transparent 1px); background-size: 100% 2.5rem; line-height: 2.5rem; }
-    .notebook-title { width: 100%; border: none; background: transparent; font-size: 1.8rem; font-weight: 700; text-align: center; margin-bottom: 2rem; outline: none; border-bottom: 2px solid var(--deep-green); font-family: 'Lato', sans-serif; color: var(--deep-green); }
+   .notebook-title {
+  width: 60%;                /* Makes the line shorter */
+  margin: 0 auto 0.5rem auto; /* Centers it and brings it closer to the label */
+  border: none;
+  background: transparent;
+  font-size: 1.8rem;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  border-bottom: 2px solid var(--deep-green); 
+  font-family: 'Ubuntu', sans-serif; /* Changed to Ubuntu */
+  color: var(--deep-green);
+  display: block;            /* Ensures margin auto works */
+}
+.original-label {
+  display: block;
+  text-align: center;
+  font-family: 'Lato', sans-serif;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 2rem;       /* Space before the body text starts */
+  font-weight: 600;
+}
     .notebook-body { width: 100%; min-height: 600px; padding-bottom: 120px; border: none; background: transparent; font-size: 1.1rem; line-height: 2.5rem; resize: none; outline: none; white-space: pre-wrap; word-wrap: break-word; font-family: 'Palatino Linotype', 'Palatino', serif;}
     .cursive-font { font-family: 'Dancing Script', cursive !important; font-size: 1.25rem !important; }
     .essay-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9rem; }
@@ -236,7 +308,7 @@
   font-style: italic;
   transition: 0.3s;
 }
-.paste-toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:var(--deep-gray); color:white; padding:10px 20px; border-radius:8px; font-size:0.85rem; font-family:'Lato',sans-serif; z-index:300; opacity:0; transition:opacity 0.3s; pointer-events:none; }
+.paste-toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:var(--deep-gray); color:white; padding:10px 20px; border-radius:8px; font-size:1rem; font-family:'Lato',sans-serif; z-index:300; opacity:0; transition:opacity 0.3s; pointer-events:none; }
 .paste-toast.show { opacity:1; }
 .draft-banner { display:none; background:#fffbe6; border:1px solid #f0d080; border-radius:8px; padding:10px 16px; margin-bottom:12px; font-size:0.85rem; font-family:'Lato',sans-serif; color:#856404; display:flex; justify-content:space-between; align-items:center; }
 .draft-banner span { flex:1; }
@@ -308,4 +380,6 @@
   .notebook-paper {
     background: none !important;
   }
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&display=swap');
 }
+
