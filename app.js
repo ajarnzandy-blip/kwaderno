@@ -409,40 +409,34 @@ function closeFeedback() {
 
 async function publishEssay() {
   const polished = document.getElementById('student-rewrite-body').value.trim();
- 
   if (!polished) {
     alert('Please write your rewritten essay before publishing.');
     return;
   }
- 
   const wordCount = polished.split(/\s+/).filter(Boolean).length;
   if (wordCount < 50) {
     alert(`Your rewrite is only ${wordCount} words. Please write at least 50 words before publishing.`);
     return;
   }
-
   const original = (document.getElementById('view-corrected-content')?.innerText || '').trim().replace(/\s+/g, ' ');
   const rewrite  = polished.trim().replace(/\s+/g, ' ');
   if (original && original === rewrite) {
     alert('Your rewrite appears unchanged. Please incorporate your teacher\'s corrections before publishing.');
     return;
   }
- 
   if (!confirm('Are you sure you want to publish? This cannot be undone.')) return;
- 
-  const { error } = await sb.from('essays').update({
-    status: 'published',
-    revised_body:   polished,
-    published_at: new Date().toISOString()
-  }).eq('id', activeEssayId);
- 
+
+  const { error } = await sb.rpc('publish_essay', {
+    essay_id: activeEssayId,
+    polished_body: polished
+  });
+
   if (error) { alert('Publish failed: ' + error.message); return; }
- 
+
   alert('Congratulations! Your essay is now published to the library.');
   document.getElementById('feedback-modal').style.display = 'none';
   fetchUserEssays();
 }
-
 async function viewPublishedEssay(essayId) {
   const { data: essay, error } = await sb
     .from('essays')
@@ -1513,57 +1507,45 @@ async function confirmPull() {
   const other  = document.getElementById('pull-reason-other').value.trim();
   const reason = select === 'Other' ? other : select;
   const msgEl  = document.getElementById('pull-msg');
-
   if (!reason) {
     msgEl.innerHTML = '<p class="error-msg">Please select or enter a reason.</p>';
     return;
   }
-
-  // THE NEW FIX: Send it back to the student!
-  const { error } = await sb
-    .from('essays')
-    .update({ 
-      status: 'pulled',       // Routes it to the student dashboard
-      teacher_id: null,       // Fires the inactive teacher
-      pulled_reason: reason   // Saves the explanation
-    })
-    .eq('id', activePullEssayId);
-
+  const { error } = await sb.rpc('pull_essay', {
+    essay_id: activePullEssayId,
+    reason: reason
+  });
   if (error) { msgEl.innerHTML = `<p class="error-msg">${error.message}</p>`; return; }
 
-  closePullModal();
-  alert('Success! The essay was pulled and returned to the student.');
-  await Promise.all([loadAdminEssays(), loadAdminStats()]);
-}
-function closePullModal() {
+  // Inline instead of calling closePullModal()
   document.getElementById('pull-modal').style.display = 'none';
   activePullEssayId = null;
+
+  alert('Success! The essay was pulled and returned to the student.');
+  await Promise.all([loadAdminEssays(), loadAdminStats()]);
 }
 async function discardPulledEssay(essayId) {
   const confirmDiscard = confirm("Are you sure you want to discard this essay? It will be sent to the shadow realm forever.");
   if (!confirmDiscard) return;
-
-  const { error } = await sb
-    .from('essays')
-    .delete()
-    .eq('id', essayId);
-
+  const { error } = await sb.rpc('discard_essay', { essay_id: essayId });
   if (error) {
     alert('Failed to discard essay: ' + error.message);
-  } else {
-    alert('Essay successfully discarded!');
-    // Reload the student dashboard so the deleted essay disappears
-    // (Replace with your actual dashboard load function if it's named differently!)
-    loadStudentDashboard(); 
+    return;
+  }
+  alert('Essay successfully discarded!');
+
+  // Find the discard button's row (the note row) and the main essay row above it
+  const discardBtn = document.querySelector(`button[onclick="discardPulledEssay('${essayId}')"]`);
+  if (discardBtn) {
+    const noteRow = discardBtn.closest('tr');       // the red note row
+    const mainRow = noteRow?.previousElementSibling; // the title row above it
+    noteRow?.remove();
+    mainRow?.remove();
   }
 }
-async function editPulledEssay(essayId) {
-  // 1. Change the status so it's officially back in draft/rewriting mode
-  const { error } = await sb
-    .from('essays')
-    .update({ status: 'rewriting' }) // Change to 'draft' or whatever you use!
-    .eq('id', essayId);
 
+async function editPulledEssay(essayId) {
+  const { error } = await sb.rpc('rewrite_essay', { essay_id: essayId });
   if (error) {
     alert('Failed to open essay for editing: ' + error.message);
     return;
