@@ -82,7 +82,66 @@ function goBack() {
     showPage('home');
   }
 }
+function insertParagraphMark() {
+  const editor = document.getElementById('teacher-correction-content');
+  editor.focus();
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+  range.deleteContents();
+  const mark = document.createTextNode(' ⬇ ');
+  range.insertNode(mark);
+  range.setStartAfter(mark);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
 
+let eraserMode = false;
+
+function toggleEraser() {
+  const editor = document.getElementById('teacher-correction-content');
+  const btn = document.getElementById('eraser-btn');
+  eraserMode = !eraserMode;
+
+  if (eraserMode) {
+    editor.classList.add('eraser-active');
+    btn.style.background = '#ffcccc';
+    btn.style.outline = '2px solid red';
+    editor.addEventListener('mouseover', handleEraserHover);
+  } else {
+    editor.classList.remove('eraser-active');
+    btn.style.background = 'white';
+    btn.style.outline = 'none';
+    editor.removeEventListener('mouseover', handleEraserHover);
+  }
+}
+
+function handleEraserHover(e) {
+  const target = e.target;
+  if (!target || target === document.getElementById('teacher-correction-content')) return;
+
+  // Remove highlight
+  if (target.style.backgroundColor) target.style.backgroundColor = '';
+
+  // Remove strikethrough
+  if (target.style.textDecoration) target.style.textDecoration = '';
+
+  // If it's inside a <strike> or <s> tag, unwrap it
+  const strike = target.closest('s, strike');
+  if (strike) {
+    const parent = strike.parentNode;
+    while (strike.firstChild) parent.insertBefore(strike.firstChild, strike);
+    parent.removeChild(strike);
+  }
+
+  // If it's a span with marks, unwrap it too
+  if (target.tagName === 'SPAN' && !target.style.backgroundColor && !target.style.color) {
+    const parent = target.parentNode;
+    while (target.firstChild) parent.insertBefore(target.firstChild, target);
+    parent.removeChild(target);
+  }
+}
 async function performSignup(isTeacher) {
   const prefix   = isTeacher ? 'rev-' : '';
   const nameEl   = document.getElementById(`${prefix}reg-name`);
@@ -660,7 +719,7 @@ function renderLibrary(essays) {
 
     // Use student as author first, fall back to teacher if no student
     const authorProfile = e.student || e.teacher;
-    const author = authorProfile?.full_name || authorProfile?.username || 'Anonymous';
+    const author = authorProfile?.username || 'Anonymous';
 
     return `
       <div class="essay-card">
@@ -717,7 +776,7 @@ async function readFullEssay(essayId) {
 
   // Fix 4: full_name fallback
   const authorProfile = essay.student || essay.teacher;
-  const author = authorProfile?.full_name || authorProfile?.username || 'Anonymous';
+  const author = authorProfile?.username || 'Anonymous';
 
   document.getElementById('full-read-title').innerText = essay.title;
   document.getElementById('full-read-date').innerText = displayDate;
@@ -747,7 +806,9 @@ async function readFullEssay(essayId) {
 function updateFontStyle() {
   const val  = document.getElementById('font-style').value;
   const body = document.getElementById('essay-body');
-  body.classList.toggle('cursive-font', val === 'cursive');
+  body.classList.remove('cursive-font', 'handwriting-font');
+  if (val === 'cursive') body.classList.add('cursive-font');
+  if (val === 'handwriting') body.classList.add('handwriting-font');
 }
 
 function updateStats() {

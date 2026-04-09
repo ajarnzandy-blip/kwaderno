@@ -32,23 +32,23 @@
       width: 75px; height: 75px;
       background: var(--squash); 
       border-radius: 16px; display: grid; place-items: center; 
-      color: var(--deep-green); margin-bottom: 0.3rem;
+      color: var(--deep-green); margin-bottom: 0.5rem;
       box-shadow: 0 4px 20px rgba(0,0,0,0.2);
     }
     .brand-text b { 
     display: block; 
-    font-family: 'Outfit', serif; 
-    font-size: 4rem;               
-    letter-spacing: 0.5px;             
-    line-height: 1.0; 
-    margin-bottom: 0.4rem;
-    font-weight: 800;                
+    font-family: 'Comfortaa', serif; 
+    font-size: 4.1rem;               
+    letter-spacing: 0.4px;             
+    line-height: 1.1; 
+    margin-bottom: 0.2rem;
+    font-weight: 900;                
     text-transform: lowercase;      
     }
     .brand-text span { 
       display: block;
-      font-family: 'Lato', serif; 
-      font-size: 1.2rem;
+      font-family: 'Dancing Script', cursive; 
+      font-size: 1.5rem;
       color: var(--squash); 
       text-transform: none;
       letter-spacing: 1px; 
@@ -211,8 +211,9 @@
   margin-bottom: 2rem;       /* Space before the body text starts */
   font-weight: 600;
 }
-    .notebook-body { width: 100%; min-height: 600px; padding-bottom: 120px; border: none; background: transparent; font-size: 1.1rem; line-height: 2.5rem; resize: none; outline: none; white-space: pre-wrap; word-wrap: break-word; font-family: 'Palatino Linotype', 'Palatino', serif;}
-    .cursive-font { font-family: 'Dancing Script', cursive !important; font-size: 1.25rem !important; }
+    .notebook-body { width: 100%; min-height: 600px; padding-bottom: 120px; border: none; background: transparent; font-size: 1.2rem; line-height: 2.5rem; resize: none; outline: none; white-space: pre-wrap; word-wrap: break-word; font-family: 'Palatino Linotype', 'Palatino', serif;}
+    .cursive-font { font-family: 'Edu NSW ACT Cursive', cursive !important; font-size: 1rem !important; }
+    .handwriting-font { font-family: 'Edu NSW ACT Foundation', cursive; font-size: 1.3rem}
     .essay-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9rem; }
     .essay-table th { text-align: left; padding: 12px; border-bottom: 2px solid var(--border); color: var(--muted); }
     .essay-table td { padding: 12px; border-bottom: 1px solid var(--border); }
@@ -380,6 +381,9 @@
   .notebook-paper {
     background: none !important;
   }
+  .eraser-active {
+  cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewport='0 0 24 24'><text y='20' font-size='20'>🧹</text></svg>") 0 20, cell;
+}
 @import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&display=swap');
 }
 
